@@ -34,8 +34,17 @@ function friendlyError(err: unknown): string {
         return "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.";
       case "auth/too-many-requests":
         return "Too many attempts. Wait a minute and try again.";
+      case "auth/unauthorized-domain":
+        return `Sign-in isn't enabled for ${window.location.hostname} yet. Add it under Authentication → Settings → Authorized domains in Firebase.`;
+      case "auth/operation-not-allowed":
+        return "This sign-in method isn't turned on in Firebase yet.";
+      case "auth/network-request-failed":
+        return "Couldn't reach Google. Check your connection and try again.";
     }
+    console.error(err);
+    return `Sign-in failed (${err.code}). Please try again.`;
   }
+  console.error(err);
   return "Something went wrong. Please try again.";
 }
 
