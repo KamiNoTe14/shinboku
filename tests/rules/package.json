@@ -1,0 +1,10 @@
+{
+  "name": "shinboku-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Security rules tests. Kept separate because @firebase/rules-unit-testing still targets Firebase 12.",
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0"
+  }
+}

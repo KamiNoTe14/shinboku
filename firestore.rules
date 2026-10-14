@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// Shinboku Firestore security rules.
+//
+// These run on Google's servers, so they can't be bypassed by editing the
+// website's code. Anything not explicitly allowed below is denied.
+//
+// Data layout:
+//   users/{uid}                 a trainer's profile (private to them)
+//   users/{uid}/pokemon/{id}    the Pokémon in their bag (private to them)
+//   admins/{uid}                marks a user as an admin; created by hand in
+//                               the Firebase console, never by the app
+//
+// Game data (Pokédex, moves, type chart) ships with the website as static
+// files, so it doesn't live in Firestore at all.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Basic shape checks so a bad or malicious client can't store junk.
+    // These get stricter as the bag's data model is finalized.
+    function validProfile(data) {
+      return data.keys().hasOnly(['displayName', 'createdAt', 'settings'])
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 60));
+    }
+
+    function validPokemon(data) {
+      return data.size() <= 40
+        && data.species is string
+        && data.species.size() > 0
+        && data.species.size() <= 40;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+
+      match /pokemon/{pokemonId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validPokemon(request.resource.data);
+      }
+    }
+
+    match /admins/{uid} {
+      // Users can check whether they themselves are an admin. Nobody can grant
+      // admin from the app; you add documents here in the Firebase console.
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+    }
+  }
+}
