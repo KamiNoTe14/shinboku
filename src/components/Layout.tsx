@@ -82,7 +82,7 @@ export default function Layout() {
           ) : (
             <Link
               to="/signin"
-              className="block rounded-lg bg-moss-500 px-3 py-2 text-center text-sm font-bold text-ink-950 hover:bg-moss-400"
+              className="block rounded-lg bg-linear-to-r from-glow-400 to-ice-400 px-3 py-2 text-center text-sm font-bold text-ink-950 hover:brightness-110"
             >
               Sign in
             </Link>

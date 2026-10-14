@@ -1,29 +1,30 @@
 @import "tailwindcss";
 
-/*
-  Shinboku design tokens.
-  Navy (#1e305e) carries over from the original Base44 app.
-  "Moss" is the accent: the name means sacred tree.
-*/
+/* Shinboku design tokens, drawn from the dragon logo. */
 @theme {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-ink-950: #0a0f1c;
-  --color-ink-900: #0f1626;
-  --color-ink-850: #131c30;
-  --color-ink-800: #18233b;
-  --color-ink-700: #22304d;
-  --color-ink-600: #34456a;
-  --color-ink-400: #7d8bab;
-  --color-ink-300: #a7b2cb;
-  --color-ink-100: #e6eaf3;
+  /* Deep navy, matched to the logo's background */
+  --color-ink-950: #050a22;
+  --color-ink-900: #0a1330;
+  --color-ink-850: #0e1838;
+  --color-ink-800: #132042;
+  --color-ink-700: #1d2c55;
+  --color-ink-600: #2d4070;
+  --color-ink-400: #7f8fb5;
+  --color-ink-300: #a9b6d4;
+  --color-ink-100: #e7ecf7;
 
   --color-navy: #1e305e;
-  --color-moss-300: #a6e3c3;
-  --color-moss-400: #7dd3a8;
-  --color-moss-500: #4fbf89;
-  --color-moss-600: #2f9d6a;
+
+  /* The dragon's mint-to-cyan glow */
+  --color-glow-300: #b8f6e2;
+  --color-glow-400: #84ecca;
+  --color-glow-500: #52d8b2;
+  --color-glow-600: #2fb894;
+  --color-ice-400: #5ccbf2;
+  --color-ice-500: #34aee0;
 }
 
 html,
@@ -40,6 +41,6 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-moss-400);
+  outline: 2px solid var(--color-glow-400);
   outline-offset: 2px;
 }

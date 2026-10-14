@@ -97,7 +97,7 @@ export default function SignIn() {
     mode === "signup" ? "Create your account" : mode === "reset" ? "Reset your password" : "Welcome back";
 
   const input =
-    "w-full rounded-lg border border-ink-700 bg-ink-900 px-3 py-2.5 text-sm text-ink-100 placeholder:text-ink-400 focus:border-moss-500 focus:outline-none";
+    "w-full rounded-lg border border-ink-700 bg-ink-900 px-3 py-2.5 text-sm text-ink-100 placeholder:text-ink-400 focus:border-glow-500 focus:outline-none";
 
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-12">
@@ -166,12 +166,12 @@ export default function SignIn() {
             )}
 
             {error && <p className="text-sm text-rose-300">{error}</p>}
-            {notice && <p className="text-sm text-moss-300">{notice}</p>}
+            {notice && <p className="text-sm text-glow-300">{notice}</p>}
 
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-moss-500 px-3 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-moss-400 disabled:opacity-60"
+              className="w-full rounded-lg bg-linear-to-r from-glow-400 to-ice-400 px-3 py-2.5 text-sm font-bold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
             >
               {busy
                 ? "Working…"

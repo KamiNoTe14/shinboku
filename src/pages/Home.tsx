@@ -25,7 +25,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-16">
-      <p className="text-xs font-semibold tracking-wider text-moss-400 uppercase">
+      <p className="text-xs font-semibold tracking-wider text-glow-400 uppercase">
         Pokémon GO companion
       </p>
       <h1 className="mt-3 max-w-2xl text-4xl leading-tight font-extrabold tracking-tight">
@@ -39,7 +39,7 @@ export default function Home() {
       <div className="mt-8 flex gap-3">
         <Link
           to={user ? "/bag" : "/signin"}
-          className="rounded-lg bg-moss-500 px-4 py-2.5 text-sm font-bold text-ink-950 hover:bg-moss-400"
+          className="rounded-lg bg-linear-to-r from-glow-400 to-ice-400 px-4 py-2.5 text-sm font-bold text-ink-950 hover:brightness-110"
         >
           {user ? "Open your bag" : "Get started"}
         </Link>

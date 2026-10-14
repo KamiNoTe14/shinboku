@@ -23,7 +23,7 @@ export function PageHeader({
 export function ComingSoon({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mx-8 mt-8 max-w-2xl rounded-2xl border border-dashed border-ink-700 p-8">
-      <p className="text-xs font-semibold tracking-wider text-moss-400 uppercase">Coming next</p>
+      <p className="text-xs font-semibold tracking-wider text-glow-400 uppercase">Coming next</p>
       <h2 className="mt-2 text-lg font-bold">{title}</h2>
       <div className="mt-2 space-y-2 text-sm leading-relaxed text-ink-300">{children}</div>
     </div>
