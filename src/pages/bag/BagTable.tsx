@@ -157,12 +157,20 @@ export function BagTable({
                 </td>
                 <td className="px-3 text-right tabular-nums text-ink-300">{r.level ?? ""}</td>
                 <td className="truncate px-3 text-ink-300">{moves.join(", ")}</td>
-                <td className="truncate px-3">
-                  {r.tags?.map((t) => (
-                    <span key={t} className="mr-1 rounded bg-ink-800 px-1.5 py-0.5 text-xs text-ink-300">
-                      {t}
+                <td className="px-3">
+                  {/* First tag, plus a count for the rest; hover to see them all. */}
+                  {r.tags && r.tags.length > 0 && (
+                    <span className="flex min-w-0 items-center gap-1" title={r.tags.join(", ")}>
+                      <span className="min-w-0 truncate rounded bg-ink-800 px-1.5 py-0.5 text-xs text-ink-300">
+                        {r.tags[0]}
+                      </span>
+                      {r.tags.length > 1 && (
+                        <span className="shrink-0 rounded bg-ink-800 px-1.5 py-0.5 text-xs text-ink-400">
+                          +{r.tags.length - 1}
+                        </span>
+                      )}
                     </span>
-                  ))}
+                  )}
                 </td>
                 <td className="px-3 text-right text-xs text-ink-400 tabular-nums">{r.caught ?? ""}</td>
               </tr>

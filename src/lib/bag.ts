@@ -13,6 +13,7 @@ import {
   collection,
   deleteField,
   doc,
+  FieldPath,
   onSnapshot,
   writeBatch,
   type FieldValue,
@@ -69,20 +70,33 @@ function clean(p: PokemonInput): PokemonInput {
 
 const chunkRef = (uid: string, chunk: string) => doc(db, "users", uid, "bag", chunk);
 
-/** Writes field-path updates grouped by bundle, creating bundles on first use. */
+/**
+ * Writes changes grouped by bundle: exactly one write per bundle touched, which
+ * matters because writes are the scarcest part of Firebase's free plan (20,000 a
+ * day). Each change replaces only its own path (a whole Pokémon, or one field of
+ * it), so other Pokémon in the same bundle are never touched. Creates the bundle
+ * on first use.
+ */
 async function writeFields(uid: string, updates: { id: string; fields: Record<string, unknown> }[]) {
-  const byChunk = new Map<string, Record<string, unknown>>();
+  const byChunk = new Map<string, { data: { p: Record<string, unknown> }; paths: FieldPath[] }>();
   for (const { id, fields } of updates) {
     const c = chunkOf(id);
-    const group = byChunk.get(c) ?? {};
-    for (const [path, value] of Object.entries(fields)) group[path ? `p.${id}.${path}` : `p.${id}`] = value;
+    const group = byChunk.get(c) ?? { data: { p: {} }, paths: [] };
+    for (const [field, value] of Object.entries(fields)) {
+      if (!field) {
+        group.data.p[id] = value;
+        group.paths.push(new FieldPath("p", id));
+      } else {
+        const entry = (group.data.p[id] ??= {}) as Record<string, unknown>;
+        entry[field] = value;
+        group.paths.push(new FieldPath("p", id, field));
+      }
+    }
     byChunk.set(c, group);
   }
   const batch = writeBatch(db);
-  for (const [c, fields] of byChunk) {
-    const ref = chunkRef(uid, c);
-    batch.set(ref, { p: {} }, { merge: true }); // no-op if the bundle exists
-    batch.update(ref, fields);
+  for (const [c, { data, paths }] of byChunk) {
+    batch.set(chunkRef(uid, c), data, { mergeFields: paths });
   }
   await batch.commit();
 }
