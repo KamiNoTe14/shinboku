@@ -76,7 +76,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
             </Link>
           </div>
           <p className="mt-6 text-sm text-ink-400">
-            Early access. Accounts work today; the bag table and entry screen are being built now.
+            Early access. Your bag and the Pokédex work today; recommendations are being built now.
           </p>
         </div>
       </div>

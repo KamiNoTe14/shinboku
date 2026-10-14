@@ -20,9 +20,11 @@ Early development. What's in place:
 - Firestore with an offline cache, and security rules that keep each trainer's bag private
 - Pokémon GO game data for every species and move, refreshed weekly from PvPoke
 - CP, HP, level and IV math, with tests against published values
-- A searchable Pokédex with GO stats, max CPs, evolution families and moves
+- A searchable Pokédex with GO stats, max CPs, evolution families, moves and images
+- The bag: keyboard-first entry with live CP/IV checking, a virtualized table for thousands of
+  Pokémon, shift/ctrl selection, tags, favorites, and Pokémon GO search strings for any selection
 
-Next up: the keyboard-first entry screen and the bag table.
+Next up: recommendations (transfer, power up, evolve, raid teams).
 
 ## Tech stack
 
@@ -62,7 +64,7 @@ out of the box.
 | `npm run dev`         | Start the dev server with live reload                |
 | `npm run build`       | Type-check and build the site into `dist/`           |
 | `npm run preview`     | Serve the built site locally                         |
-| `npm test`            | Run the unit tests (CP and IV math)                  |
+| `npm test`            | Run the unit tests (stat math, entry checks, search strings) |
 | `npm run test:rules`  | Test the Firestore security rules (needs Java)       |
 | `node scripts/build-gamedata.mjs` | Refresh the game data from PvPoke        |
 | `npm run deploy:rules`| Publish `firestore.rules` to the live project        |
@@ -72,7 +74,8 @@ out of the box.
 Security is enforced by [`firestore.rules`](firestore.rules), which run on Google's servers. The
 website's code is public, and that's fine: editing it can't get around the rules.
 
-- `users/{uid}` and `users/{uid}/pokemon/*`: readable and writable only by that user
+- `users/{uid}` and `users/{uid}/bag/{0-7}`: readable and writable only by that user. The bag is
+  bundled into 8 documents so a 2,000-Pokémon bag loads in 8 reads instead of 2,000.
 - `admins/{uid}`: marks an admin; can only be created by hand in the Firebase console
 - Everything else: denied
 

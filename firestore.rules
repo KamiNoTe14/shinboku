@@ -7,7 +7,9 @@ rules_version = '2';
 //
 // Data layout:
 //   users/{uid}                 a trainer's profile (private to them)
-//   users/{uid}/pokemon/{id}    the Pokémon in their bag (private to them)
+//   users/{uid}/bag/{0..7}      the Pokémon in their bag, bundled into 8
+//                               documents of { p: { <id>: <Pokémon> } }
+//                               (private to them)
 //   admins/{uid}                marks a user as an admin; created by hand in
 //                               the Firebase console, never by the app
 //
@@ -37,20 +39,21 @@ service cloud.firestore {
         && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 60));
     }
 
-    function validPokemon(data) {
-      return data.size() <= 40
-        && data.species is string
-        && data.species.size() > 0
-        && data.species.size() <= 40;
+    // A bag bundle only holds the map of Pokémon. Firestore caps each document at
+    // 1 MB, which bounds how much any one bundle can hold.
+    function validBundle(data) {
+      return data.keys().hasOnly(['p']) && data.p is map;
     }
 
     match /users/{uid} {
       allow read, delete: if isOwner(uid);
       allow create, update: if isOwner(uid) && validProfile(request.resource.data);
 
-      match /pokemon/{pokemonId} {
+      match /bag/{bundle} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validPokemon(request.resource.data);
+        allow create, update: if isOwner(uid)
+          && bundle in ['0', '1', '2', '3', '4', '5', '6', '7']
+          && validBundle(request.resource.data);
       }
     }
 

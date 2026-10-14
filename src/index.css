@@ -50,3 +50,14 @@ body {
 .silhouette {
   filter: brightness(0) invert(0.16) drop-shadow(0 0 1px rgba(132, 236, 202, 0.55));
 }
+
+/* Nudge the entry row when Enter can't save yet. */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.shake { animation: shake 0.3s ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+}

@@ -33,16 +33,18 @@ await check("bob cannot write alice profile", assertFails(setDoc(doc(bob, "users
 await check("profile rejects unknown fields", assertFails(setDoc(doc(alice, "users/alice"), { displayName: "A", isAdmin: true })));
 await check("profile rejects huge name", assertFails(setDoc(doc(alice, "users/alice"), { displayName: "x".repeat(200) })));
 
-// Bag
-const mon = { species: "machamp", cp: 2500 };
-await check("alice adds pokemon", assertSucceeds(setDoc(doc(alice, "users/alice/pokemon/p1"), mon)));
-await check("alice lists own bag", assertSucceeds(getDocs(collection(alice, "users/alice/pokemon"))));
-await check("bob cannot list alice bag", assertFails(getDocs(collection(bob, "users/alice/pokemon"))));
-await check("bob cannot add to alice bag", assertFails(setDoc(doc(bob, "users/alice/pokemon/p2"), mon)));
-await check("bob cannot delete alice pokemon", assertFails(deleteDoc(doc(bob, "users/alice/pokemon/p1"))));
-await check("anon cannot read alice pokemon", assertFails(getDoc(doc(anon, "users/alice/pokemon/p1"))));
-await check("pokemon requires species", assertFails(setDoc(doc(alice, "users/alice/pokemon/p3"), { cp: 10 })));
-await check("alice deletes own pokemon", assertSucceeds(deleteDoc(doc(alice, "users/alice/pokemon/p1"))));
+// Bag (bundled into users/{uid}/bag/0..7)
+const bundle = { p: { abc123: { species: "machamp", cp: 2500, added: 1 } } };
+await check("alice writes a bag bundle", assertSucceeds(setDoc(doc(alice, "users/alice/bag/3"), bundle)));
+await check("alice lists own bag", assertSucceeds(getDocs(collection(alice, "users/alice/bag"))));
+await check("bob cannot list alice bag", assertFails(getDocs(collection(bob, "users/alice/bag"))));
+await check("bob cannot write alice bag", assertFails(setDoc(doc(bob, "users/alice/bag/3"), bundle)));
+await check("bob cannot delete alice bundle", assertFails(deleteDoc(doc(bob, "users/alice/bag/3"))));
+await check("anon cannot read alice bag", assertFails(getDoc(doc(anon, "users/alice/bag/3"))));
+await check("bundle id must be 0-7", assertFails(setDoc(doc(alice, "users/alice/bag/9"), bundle)));
+await check("bundle rejects extra fields", assertFails(setDoc(doc(alice, "users/alice/bag/2"), { ...bundle, admin: true })));
+await check("bundle requires a map", assertFails(setDoc(doc(alice, "users/alice/bag/2"), { p: "nope" })));
+await check("alice deletes own bundle", assertSucceeds(deleteDoc(doc(alice, "users/alice/bag/3"))));
 
 // Admins
 await check("alice cannot make herself admin", assertFails(setDoc(doc(alice, "admins/alice"), { by: "me" })));

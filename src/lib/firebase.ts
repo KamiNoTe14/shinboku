@@ -26,5 +26,6 @@ googleProvider.setCustomParameters({ prompt: "select_account" });
 // A local cache keeps a bag of ~2,000 Pokémon from being re-downloaded on every
 // visit, which keeps us comfortably inside the free plan's daily read quota.
 export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });

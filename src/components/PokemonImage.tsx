@@ -39,12 +39,14 @@ export function PokemonImage({
   className?: string;
   eager?: boolean;
 }) {
-  // Try the exact form first, then the base species, then show a placeholder.
-  const candidates = [species.img, species.dex].filter((x): x is number => typeof x === "number");
+  // Try the exact form first, then the base species; for shinies, fall back to the
+  // regular colors before giving up and showing a placeholder.
+  const ids = [species.img, species.dex].filter((x): x is number => typeof x === "number");
+  const candidates = [...(shiny ? ids.map((id) => ({ id, shiny: true })) : []), ...ids.map((id) => ({ id, shiny: false }))];
   const [attempt, setAttempt] = useState(0);
-  const id = candidates[attempt];
+  const current = candidates[attempt];
 
-  if (id === undefined) {
+  if (!current) {
     return (
       <span
         className={`inline-block rounded-full bg-ink-800 ${className}`}
@@ -56,8 +58,8 @@ export function PokemonImage({
 
   return (
     <img
-      key={`${style}-${id}-${shiny}`}
-      src={urlFor(style, id, shiny)}
+      key={`${style}-${current.id}-${current.shiny}`}
+      src={urlFor(style, current.id, current.shiny)}
       alt={silhouette ? "Unknown Pokémon silhouette" : species.name}
       width={size}
       height={size}
