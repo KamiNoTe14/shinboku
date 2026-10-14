@@ -6,7 +6,7 @@ A desktop-first Pokémon GO companion for managing large collections. Fast keybo
 multi-select bag management, and recommendations for what to transfer, power up, evolve, and bring
 to raids.
 
-**Live site:** [shinboku.app](https://shinboku.app) (coming soon)
+**Live site:** [shinboku.app](https://shinboku.app)
 
 > Shinboku is a fan project and is not affiliated with Niantic, Nintendo, The Pokémon Company, or
 > Game Freak. It never connects to your game account.
@@ -18,9 +18,11 @@ Early development. What's in place:
 - React + Vite + TypeScript app with a desktop sidebar layout
 - Sign-in with Google or email/password (Firebase Authentication)
 - Firestore with an offline cache, and security rules that keep each trainer's bag private
-- Placeholder pages for Bag, Recommendations, Pokédex and Raid counters
+- Pokémon GO game data for every species and move, refreshed weekly from PvPoke
+- CP, HP, level and IV math, with tests against published values
+- A searchable Pokédex with GO stats, max CPs, evolution families and moves
 
-Next up: Pokémon GO game data, the keyboard-first entry screen, and the bag table.
+Next up: the keyboard-first entry screen and the bag table.
 
 ## Tech stack
 
@@ -60,7 +62,9 @@ out of the box.
 | `npm run dev`         | Start the dev server with live reload                |
 | `npm run build`       | Type-check and build the site into `dist/`           |
 | `npm run preview`     | Serve the built site locally                         |
+| `npm test`            | Run the unit tests (CP and IV math)                  |
 | `npm run test:rules`  | Test the Firestore security rules (needs Java)       |
+| `node scripts/build-gamedata.mjs` | Refresh the game data from PvPoke        |
 | `npm run deploy:rules`| Publish `firestore.rules` to the live project        |
 
 ## Security model
@@ -73,6 +77,14 @@ website's code is public, and that's fine: editing it can't get around the rules
 - Everything else: denied
 
 Game data (Pokédex, moves, type chart) ships with the site as static files, not in Firestore.
+
+## Game data
+
+Species, base stats, moves and evolution families come from [PvPoke](https://github.com/pvpoke/pvpoke)
+(MIT License). [`scripts/build-gamedata.mjs`](scripts/build-gamedata.mjs) converts it into
+`public/data/gamedata.json`, and the **Refresh game data** workflow reruns it every Monday,
+committing and redeploying only when something changed. Run it by hand from the Actions tab after a
+big game update. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ### Testing the rules
 
@@ -99,7 +111,10 @@ src/
   auth/         sign-in state and route protection
   components/   layout, logo, shared UI
   lib/          Firebase setup
+  lib/go/       Pokémon GO data loading and stat math
   pages/        one file per page
+public/data/            generated game data
+scripts/                game data build script
 firestore.rules         database security rules
 tests/rules/            security rules tests
 firebase.json           Firestore rules and emulator config
