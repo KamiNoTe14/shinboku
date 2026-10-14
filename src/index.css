@@ -2,8 +2,9 @@
 
 /* Shinboku design tokens, drawn from the dragon logo. */
 @theme {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Chakra Petch", var(--font-sans);
+  --font-mono: ui-monospace, "Cascadia Mono", Menlo, monospace;
 
   /* Deep navy, matched to the logo's background */
   --color-ink-950: #050a22;

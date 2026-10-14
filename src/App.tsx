@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import { AuthProvider } from "./auth/AuthProvider";
 import { RequireAuth } from "./auth/RequireAuth";
 import Layout from "./components/Layout";
-import Home from "./pages/Home";
+import Landing from "./pages/landing/Landing";
 import SignIn from "./pages/SignIn";
 import Bag from "./pages/Bag";
 import Recommendations from "./pages/Recommendations";
@@ -15,9 +15,9 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route index element={<Landing />} />
           <Route path="/signin" element={<SignIn />} />
           <Route element={<Layout />}>
-            <Route index element={<Home />} />
             <Route path="pokedex" element={<Pokedex />} />
             <Route path="raids" element={<Raids />} />
             <Route

@@ -1,0 +1,199 @@
+/* Landing page. Tailwind handles most layout; the hero's moving bag wall lives here. */
+
+.landing {
+  --display: var(--font-display);
+  background: var(--color-ink-950);
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: min(92vh, 860px);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-ink-800);
+}
+
+/* The bag wall: an endless, tilted table of Pokémon drifting upward. */
+.wall {
+  position: absolute;
+  inset: -20% -14% -20% 40%;
+  z-index: -2;
+  transform: perspective(1400px) rotateX(14deg) rotateY(-14deg) rotateZ(-5deg);
+  transform-origin: 60% 50%;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 80%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, #000 18%, #000 80%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
+.wall-track {
+  display: grid;
+  gap: 6px;
+  animation: wall-drift 140s linear infinite;
+}
+
+.wall.paused .wall-track {
+  animation-play-state: paused;
+}
+
+@keyframes wall-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.wall-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr 0.9fr 0.5fr 1fr 1.2fr;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border: 1px solid rgba(132, 236, 202, 0.07);
+  border-radius: 8px;
+  background: rgba(14, 24, 56, 0.72);
+  color: var(--color-ink-300);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.wall-row .nm {
+  color: var(--color-ink-100);
+  font-weight: 700;
+}
+
+.wall-row .cp {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--color-ink-100);
+}
+
+.wall-row .ivs {
+  display: flex;
+  gap: 3px;
+}
+
+.wall-row .ivs i {
+  display: block;
+  width: 26px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-ink-700);
+  overflow: hidden;
+}
+
+.wall-row .ivs i::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: var(--v);
+  background: var(--color-ice-500);
+}
+
+.wall-row .flag {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.flag.shiny { color: #ffe08a; background: rgba(255, 224, 138, 0.12); }
+.flag.lucky { color: #ffd166; background: rgba(255, 209, 102, 0.12); }
+.flag.shadow { color: #c4a7ff; background: rgba(196, 167, 255, 0.12); }
+
+/* Shift-click selection sweeping across a block of rows. */
+.wall-row.sel {
+  background: rgba(82, 216, 178, 0.26);
+  border-color: rgba(132, 236, 202, 0.9);
+  color: var(--color-ink-100);
+  box-shadow: 0 0 32px rgba(82, 216, 178, 0.35), inset 0 0 0 1px rgba(132, 236, 202, 0.25);
+}
+
+/* Readability layer between the wall and the words. */
+.hero-tint {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, var(--color-ink-950) 0%, rgba(5, 10, 34, 0) 20%),
+    radial-gradient(60% 70% at 78% 45%, rgba(52, 174, 224, 0.16), transparent 70%),
+    linear-gradient(90deg, var(--color-ink-950) 0%, var(--color-ink-950) 28%, rgba(5, 10, 34, 0.45) 46%, rgba(5, 10, 34, 0.05) 70%),
+    linear-gradient(180deg, rgba(5, 10, 34, 0) 70%, var(--color-ink-950) 100%);
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(48px, 7.2vw, 108px);
+  line-height: 0.94;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  text-shadow: 0 6px 40px rgba(5, 10, 34, 0.8);
+}
+
+.pause-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(231, 236, 247, 0.35);
+  background: rgba(5, 10, 34, 0.6);
+  color: var(--color-ink-100);
+  backdrop-filter: blur(6px);
+}
+
+.pause-btn:hover {
+  border-color: var(--color-glow-400);
+  color: var(--color-glow-400);
+}
+
+/* ---------- How it works ---------- */
+
+.keycap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--color-ink-600);
+  border-bottom-width: 3px;
+  background: var(--color-ink-800);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-ink-100);
+}
+
+.keycap.accent {
+  border-color: var(--color-glow-500);
+  color: var(--color-glow-300);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-track { animation: none; }
+  .wall-row { transition: none; }
+  .pause-btn { display: none; }
+}
+
+@media (max-width: 760px) {
+  .wall {
+    inset: -10% -40% -10% -10%;
+    opacity: 0.55;
+  }
+  .hero-tint {
+    background:
+      linear-gradient(180deg, rgba(5, 10, 34, 0.55) 0%, rgba(5, 10, 34, 0.9) 60%, var(--color-ink-950) 100%);
+  }
+}
