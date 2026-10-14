@@ -277,7 +277,7 @@ function Details({
   const statMax = 420;
 
   return (
-    <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-ink-800 bg-ink-900/60 px-6 py-6">
+    <aside className="w-[440px] shrink-0 overflow-y-auto border-l border-ink-800 bg-ink-900/60 px-6 py-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-sm text-ink-400">#{String(s.dex).padStart(4, "0")}</p>
@@ -345,27 +345,39 @@ function Details({
       {chain.length > 1 && (
         <section className="mt-6">
           <h3 className="text-sm font-semibold text-ink-300">Evolution family</h3>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+          {/* One column per evolution stage, always on a single line. Branching stages
+              (like Eevee's) stack their options inside their column. */}
+          <div className="mt-2 flex items-center gap-1 text-sm">
             {chain.map((stage, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-ink-600" aria-hidden="true">›</span>}
-                <span className="flex flex-col gap-1.5">
+              <div key={i} className="flex min-w-0 flex-1 items-center gap-1">
+                {i > 0 && (
+                  <span className="shrink-0 text-ink-600" aria-hidden="true">
+                    ›
+                  </span>
+                )}
+                <div className={`grid min-w-0 flex-1 gap-1 ${stage.length > 3 ? "grid-cols-2" : "grid-cols-1"}`}>
                   {stage.map((m) => (
                     <button
                       key={m.id}
                       onClick={() => onSelect(m.id)}
-                      className={`flex w-[92px] flex-col items-center rounded-lg border px-1.5 pt-1.5 pb-1 text-xs ${
+                      title={m.name}
+                      className={`flex min-w-0 flex-col items-center rounded-lg border px-1 pt-1.5 pb-1 text-xs ${
                         m.id === s.id
                           ? "border-glow-500/60 bg-glow-500/12 text-glow-300"
                           : "border-ink-700 bg-ink-950/40 hover:border-ink-600 hover:bg-ink-800"
                       }`}
                     >
-                      <PokemonImage species={m} style="art" size={64} silhouette={hidden(m)} />
+                      <PokemonImage
+                        species={m}
+                        style="art"
+                        size={stage.length > 3 ? 40 : 64}
+                        silhouette={hidden(m)}
+                      />
                       <span className="mt-1 w-full truncate text-center">{m.name}</span>
                     </button>
                   ))}
-                </span>
-              </span>
+                </div>
+              </div>
             ))}
           </div>
         </section>
