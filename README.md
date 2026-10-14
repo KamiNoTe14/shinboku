@@ -28,12 +28,18 @@ Next up: Pokémon GO game data, the keyboard-first entry screen, and the bag tab
 | Build        | Vite, TypeScript                         |
 | Accounts     | Firebase Authentication                  |
 | Data         | Cloud Firestore                          |
-| Hosting      | Firebase Hosting (free Spark plan)       |
+| Hosting      | GitHub Pages, deployed on every push     |
 
 Everything runs on Firebase's free Spark plan. Cloud Storage is deliberately not used, because it
 now requires the paid Blaze plan.
 
-## Running it locally
+## Deployment
+
+Every push to `main` builds the site and publishes it to GitHub Pages via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Progress shows under the repo's
+**Actions** tab.
+
+## Running it locally (optional)
 
 You'll need [Node.js 24 or newer](https://nodejs.org/) (the current LTS) and Git.
 
@@ -94,5 +100,6 @@ src/
   pages/        one file per page
 firestore.rules         database security rules
 tests/rules/            security rules tests
-firebase.json           Firebase Hosting and emulator config
+firebase.json           Firestore rules and emulator config
+.github/workflows/      GitHub Pages deployment
 ```
