@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Builds public/data/gamedata.json from PvPoke's open Pokémon GO game data (MIT licensed).
+// Builds public/data/gamedata.json from PvPoke's open Pokémon GO game data (MIT licensed),
+// and matches each species to its image ID in PokeAPI's sprite collection.
 //
-//   node scripts/build-gamedata.mjs            download the latest data from PvPoke
-//   node scripts/build-gamedata.mjs file.json  use a local copy instead
+//   node scripts/build-gamedata.mjs                        download the latest data
+//   node scripts/build-gamedata.mjs gm.json pokemon.csv    use local copies instead
 //
 // The output is committed to the repo so the site never depends on PvPoke being up.
 // A scheduled GitHub Action reruns this weekly and commits any changes.
@@ -10,6 +11,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
 const SOURCE_URL = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster.json";
+const POKEAPI_CSV_URL = "https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon.csv";
 const OUT = new URL("../public/data/gamedata.json", import.meta.url);
 
 const KEEP_TAGS = new Set([
@@ -27,15 +29,62 @@ const KEEP_TAGS = new Set([
 
 const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-async function loadSource() {
-  const local = process.argv[2];
-  if (local) return JSON.parse(await readFile(local, "utf8"));
-  const res = await fetch(SOURCE_URL);
-  if (!res.ok) throw new Error(`Couldn't download PvPoke data: HTTP ${res.status}`);
-  return res.json();
+async function loadText(localPath, url, label) {
+  if (localPath) return readFile(localPath, "utf8");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Couldn't download ${label}: HTTP ${res.status}`);
+  return res.text();
 }
 
-function convert(gm) {
+// ---- Sprite matching ------------------------------------------------------
+// PokeAPI names forms differently from PvPoke ("rattata-alola" vs "rattata_alolan").
+const FORM_SUFFIXES = [
+  ["_alolan", "-alola"],
+  ["_galarian", "-galar"],
+  ["_hisuian", "-hisui"],
+  ["_paldean", "-paldea"],
+];
+const SPRITE_ALIASES = {
+  "nidoran-female": "nidoran-f",
+  "nidoran-male": "nidoran-m",
+  "tauros-aqua": "tauros-paldea-aqua-breed",
+  "tauros-blaze": "tauros-paldea-blaze-breed",
+  "tauros-combat": "tauros-paldea-combat-breed",
+  "necrozma-dawn-wings": "necrozma-dawn",
+  "necrozma-dusk-mane": "necrozma-dusk",
+  "zacian-crowned-sword": "zacian-crowned",
+  "zamazenta-crowned-shield": "zamazenta-crowned",
+  "zacian-hero": "zacian",
+  "zamazenta-hero": "zamazenta",
+  "calyrex-ice-rider": "calyrex-ice",
+  "calyrex-shadow-rider": "calyrex-shadow",
+  "minior-meteor": "minior-red-meteor",
+  "minior-core": "minior-red",
+  "hoopa-confined": "hoopa",
+};
+
+function spriteMatcher(csv) {
+  const ids = new Map();
+  for (const line of csv.trim().split("\n").slice(1)) {
+    const [id, identifier] = line.split(",");
+    ids.set(identifier, Number(id));
+  }
+  const names = [...ids.keys()];
+  return (speciesId, dex) => {
+    let name = speciesId;
+    for (const [from, to] of FORM_SUFFIXES) name = name.replace(from, to);
+    name = name.replaceAll("_", "-");
+    name = SPRITE_ALIASES[name] ?? name;
+    if (ids.has(name)) return ids.get(name);
+    // PokeAPI sometimes gives the default form a longer name, e.g. "deoxys-normal".
+    const prefixed = names.filter((n) => n.startsWith(name + "-")).map((n) => ids.get(n));
+    if (prefixed.length) return Math.min(...prefixed);
+    // Cosmetic forms without their own image (costumes, Arceus types) use the base image.
+    return dex;
+  };
+}
+
+function convert(gm, spriteId) {
   const shadowEligible = new Set();
   for (const p of gm.pokemon) {
     if (p.tags?.includes("shadow")) shadowEligible.add(p.speciesId.replace(/_shadow$/, ""));
@@ -63,6 +112,8 @@ function convert(gm) {
       charged: p.chargedMoves,
       family: p.family?.id ?? null,
     };
+    const img = spriteId(p.speciesId, p.dex);
+    if (img !== p.dex) entry.img = img;
     if (p.eliteMoves?.length) entry.elite = p.eliteMoves;
     if (p.legacyMoves?.length) entry.legacy = p.legacyMoves;
     if (p.family?.parent) entry.parent = p.family.parent;
@@ -92,14 +143,18 @@ function convert(gm) {
   }
 
   return {
-    source: "PvPoke game master (https://github.com/pvpoke/pvpoke), MIT License",
+    source: "PvPoke game master (https://github.com/pvpoke/pvpoke), MIT License. Image IDs: PokeAPI.",
     sourceUpdated: gm.timestamp ?? null,
     species,
     moves,
   };
 }
 
-const data = convert(await loadSource());
+const [gmText, csvText] = await Promise.all([
+  loadText(process.argv[2], SOURCE_URL, "PvPoke data"),
+  loadText(process.argv[3], POKEAPI_CSV_URL, "PokeAPI form list"),
+]);
+const data = convert(JSON.parse(gmText), spriteMatcher(csvText));
 
 // Leave the file untouched when nothing but the timestamp changed, so the weekly job
 // doesn't create empty commits.

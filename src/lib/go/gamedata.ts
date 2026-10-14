@@ -17,6 +17,8 @@ export type Species = {
   fast: string[];
   charged: string[];
   family: string | null;
+  /** PokeAPI image ID when it differs from the dex number (regional forms, megas). */
+  img?: number;
   elite?: string[];
   legacy?: string[];
   parent?: string;

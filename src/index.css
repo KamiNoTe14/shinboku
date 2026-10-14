@@ -45,3 +45,8 @@ body {
   outline: 2px solid var(--color-glow-400);
   outline-offset: 2px;
 }
+
+/* "Who's that Pokémon?" silhouette for species you haven't logged yet. */
+.silhouette {
+  filter: brightness(0) invert(0.16) drop-shadow(0 0 1px rgba(132, 236, 202, 0.55));
+}

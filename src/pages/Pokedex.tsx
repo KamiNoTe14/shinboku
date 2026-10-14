@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { PageHeader } from "../components/PageHeader";
 import { TypeBadge } from "../components/TypeBadge";
+import { PokemonImage } from "../components/PokemonImage";
+import { useOwnedSpecies } from "../lib/bag";
 import { ALL_TYPES, useGameData, type GameData, type PokemonType, type Species } from "../lib/go/gamedata";
 import { calcCP, calcHP } from "../lib/go/stats";
 
@@ -26,6 +28,22 @@ export default function Pokedex() {
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "dex", desc: false });
   const searchRef = useRef<HTMLInputElement>(null);
   const selectedId = params.get("p");
+  const owned = useOwnedSpecies();
+  const [silhouettes, setSilhouettes] = useState(() => {
+    try {
+      return localStorage.getItem("dex.silhouettes") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSilhouettes = (on: boolean) => {
+    setSilhouettes(on);
+    try {
+      localStorage.setItem("dex.silhouettes", on ? "1" : "0");
+    } catch {}
+  };
+  // Silhouettes only apply when signed in, since they're based on your bag.
+  const hidden = (s: Species) => !!owned && silhouettes && !owned.has(s.id);
 
   const rows = useMemo(() => {
     if (!data) return [];
@@ -131,7 +149,18 @@ export default function Pokedex() {
             <TypeBadge type={t} />
           </button>
         ))}
-        <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-ink-300">
+        {owned && (
+          <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-ink-300">
+            <input
+              type="checkbox"
+              checked={silhouettes}
+              onChange={(e) => toggleSilhouettes(e.target.checked)}
+              className="accent-glow-500"
+            />
+            Silhouette Pokémon I haven't logged
+          </label>
+        )}
+        <label className={`${owned ? "ml-4" : "ml-auto"} flex cursor-pointer items-center gap-2 text-sm text-ink-300`}>
           <input
             type="checkbox"
             checked={showMegas}
@@ -152,6 +181,7 @@ export default function Pokedex() {
               <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
                 <tr className="border-b border-ink-800">
                   {header("dex", "#", "left")}
+                  <th className="w-12 px-1 py-2"><span className="sr-only">Image</span></th>
                   {header("name", "Name", "left")}
                   <th className="px-3 py-2 text-left font-semibold">Type</th>
                   {header("atk", "Attack")}
@@ -172,6 +202,9 @@ export default function Pokedex() {
                   >
                     <td className="px-3 py-2 font-display text-ink-400 tabular-nums">
                       {String(s.dex).padStart(4, "0")}
+                    </td>
+                    <td className="px-1 py-0.5">
+                      <PokemonImage species={s} style="pixel" size={44} silhouette={hidden(s)} />
                     </td>
                     <td className="px-3 py-2">
                       <span className={`font-semibold ${s.id === selectedId ? "text-glow-300" : ""}`}>{s.name}</span>
@@ -209,7 +242,7 @@ export default function Pokedex() {
             </p>
           </div>
 
-          {selected && <Details species={selected} data={data} onSelect={select} />}
+          {selected && <Details species={selected} data={data} onSelect={select} hidden={hidden} />}
         </div>
       )}
     </div>
@@ -233,10 +266,12 @@ function Details({
   species: s,
   data,
   onSelect,
+  hidden,
 }: {
   species: Species;
   data: GameData;
   onSelect: (id: string | null) => void;
+  hidden: (s: Species) => boolean;
 }) {
   const chain = familyChain(s, data);
   const statMax = 420;
@@ -262,7 +297,20 @@ function Details({
         </button>
       </div>
 
-      <section className="mt-6 space-y-2">
+      <figure className="relative mt-4 flex flex-col items-center">
+        <div
+          className="absolute top-6 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(82,216,178,0.22),transparent_68%)]"
+          aria-hidden="true"
+        />
+        <PokemonImage key={s.id} species={s} style="home" size={208} eager silhouette={hidden(s)} className="relative" />
+        {hidden(s) && (
+          <figcaption className="text-center text-xs text-ink-400">
+            You haven't logged a {s.name} yet.
+          </figcaption>
+        )}
+      </figure>
+
+      <section className="mt-4 space-y-2">
         {([
           ["Attack", s.atk],
           ["Defense", s.def],
@@ -300,20 +348,23 @@ function Details({
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
             {chain.map((stage, i) => (
               <span key={i} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-ink-600">›</span>}
-                {stage.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => onSelect(m.id)}
-                    className={`rounded-md border px-2 py-1 ${
-                      m.id === s.id
-                        ? "border-glow-500/60 bg-glow-500/12 text-glow-300"
-                        : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"
-                    }`}
-                  >
-                    {m.name}
-                  </button>
-                ))}
+                {i > 0 && <span className="text-ink-600" aria-hidden="true">›</span>}
+                <span className="flex flex-col gap-1.5">
+                  {stage.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => onSelect(m.id)}
+                      className={`flex w-[92px] flex-col items-center rounded-lg border px-1.5 pt-1.5 pb-1 text-xs ${
+                        m.id === s.id
+                          ? "border-glow-500/60 bg-glow-500/12 text-glow-300"
+                          : "border-ink-700 bg-ink-950/40 hover:border-ink-600 hover:bg-ink-800"
+                      }`}
+                    >
+                      <PokemonImage species={m} style="art" size={64} silhouette={hidden(m)} />
+                      <span className="mt-1 w-full truncate text-center">{m.name}</span>
+                    </button>
+                  ))}
+                </span>
               </span>
             ))}
           </div>

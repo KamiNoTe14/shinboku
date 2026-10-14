@@ -29,6 +29,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Pokémon images
+
+Sprites, 3D renders and official artwork are linked (not hosted) from
+[PokeAPI's sprite collection](https://github.com/PokeAPI/sprites). Form-to-image IDs are
+matched using PokeAPI's data at build time. The images themselves are © Nintendo, Creatures Inc.
+and GAME FREAK inc., and are shown for identification in this non-commercial fan project.
+They will be removed on request from a rights holder.
+
 ## Pokémon
 
 Pokémon and Pokémon character names are trademarks of Nintendo, Creatures Inc. and GAME FREAK inc.

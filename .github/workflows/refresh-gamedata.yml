@@ -1,4 +1,4 @@
-# Pulls the latest Pokémon GO game data from PvPoke every Monday, commits it if
+# Pulls the latest Pokémon GO game data from PvPoke (and form image IDs from PokeAPI) every Monday, commits it if
 # anything changed, and redeploys the site. Can also be run by hand from the
 # Actions tab when a big game update lands.
 name: Refresh game data
