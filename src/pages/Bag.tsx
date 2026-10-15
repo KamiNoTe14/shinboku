@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -40,6 +40,8 @@ export default function Bag() {
   const { user } = useAuth();
   const { data, error: dataError } = useGameData();
   const bag = useBag();
+  const [params] = useSearchParams();
+  const initialSpecies = (data && params.get("species") && data.byId.get(params.get("species")!)) || null;
 
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Set<Filter>>(new Set());
@@ -349,7 +351,7 @@ export default function Bag() {
         />
       )}
 
-      <EntryRow data={data} editing={editing} onSave={save} onCancelEdit={() => setEditing(null)} />
+      <EntryRow data={data} initialSpecies={initialSpecies} editing={editing} onSave={save} onCancelEdit={() => setEditing(null)} />
 
       {bag.error && (
         <div className="mx-8 mt-4 rounded-lg border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">

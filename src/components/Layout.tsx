@@ -11,6 +11,7 @@ const nav: { heading: string; items: NavItem[] }[] = [
     heading: "Your bag",
     items: [
       { to: "/bag", label: "Bag", icon: "bag", private: true },
+      { to: "/catch-up", label: "Catch up", icon: "checklist", private: true },
       { to: "/recommendations", label: "Recommendations", icon: "spark", private: true },
     ],
   },
@@ -113,6 +114,7 @@ const icons = {
   spark: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z",
   book: "M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Zm0 13a3 3 0 0 1 3-3h10",
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-4h.01",
+  checklist: "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6v-9Z",
   logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10",
 };

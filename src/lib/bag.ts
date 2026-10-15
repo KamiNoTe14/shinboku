@@ -155,7 +155,7 @@ export async function setFavorite(uid: string, ids: string[], favorite: boolean)
 }
 
 /** Sets or removes individual fields of one Pokémon (null removes). One write. */
-export async function patchPokemon(uid: string, id: string, fields: Record<string, string | number | null>) {
+export async function patchPokemon(uid: string, id: string, fields: Record<string, unknown>) {
   await writeFields(uid, [
     {
       id,

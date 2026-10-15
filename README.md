@@ -23,6 +23,11 @@ Early development. What's in place:
 - A searchable Pokédex with GO stats, max CPs, evolution families, moves and images
 - The bag: keyboard-first entry with live CP/IV checking, a virtualized table for thousands of
   Pokémon, shift/ctrl selection, tags, favorites, and Pokémon GO search strings for any selection
+- Quick entry: one line per Pokémon (`machop 1056 15 14 13`, or just `1120 15/15/14` for the same
+  species), with a live check of the level and IVs, and voice entry in Chrome and Edge
+- Catch up: a search string for low-IV Pokémon of species that don't matter (to transfer before
+  entering anything), a checklist for entering one evolution family at a time, and a queue of
+  unappraised Pokémon whose IVs matter, with inline appraisal entry
 - Bag backups: CSV export, and import with validation (add/update or replace)
 - Catch cards: click a Pokémon for a card with its CP, level, appraisal and moves, plus one-click
   power-ups (with stardust and candy costs) and evolutions, all undoable

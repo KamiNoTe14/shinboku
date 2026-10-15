@@ -5,13 +5,24 @@ import { TypeBadge } from "../../components/TypeBadge";
 import type { GameData, Species } from "../../lib/go/gamedata";
 import { checkEntry, FLAG_KEYS, parseAppraisal, parseWholeNumber, type FlagName } from "../../lib/go/entry";
 import type { BagPokemon, PokemonInput, Variant } from "../../lib/bag";
+import { QuickEntry } from "./QuickEntry";
+
+type Mode = "quick" | "full";
+
+function readMode(): Mode {
+  try {
+    return localStorage.getItem("entry.mode") === "full" ? "full" : "quick";
+  } catch {
+    return "quick";
+  }
+}
 
 type Flags = { shiny: boolean; lucky: boolean; favorite: boolean; variant: Variant | null };
 const NO_FLAGS: Flags = { shiny: false, lucky: false, favorite: false, variant: null };
 
-const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+export const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
 
-function readStoredDate() {
+export function readStoredDate() {
   try {
     const d = localStorage.getItem("entry.caught");
     // Only reuse a remembered date from today's session; otherwise default to today.
@@ -26,11 +37,13 @@ const field =
 export function EntryRow({
   data,
   editing,
+  initialSpecies = null,
   onSave,
   onCancelEdit,
 }: {
   data: GameData;
   editing: BagPokemon | null;
+  initialSpecies?: Species | null;
   onSave: (input: PokemonInput) => Promise<void>;
   onCancelEdit: () => void;
 }) {
@@ -49,8 +62,20 @@ export function EntryRow({
   const [shaking, setShaking] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const speciesRef = useRef<HTMLInputElement>(null);
+  const [modeChoice, setModeChoice] = useState<Mode>(readMode);
+  const mode: Mode = editing ? "full" : modeChoice;
+  const chooseMode = (m: Mode) => {
+    setModeChoice(m);
+    try {
+      localStorage.setItem("entry.mode", m);
+    } catch {}
+  };
 
-  const species = speciesId ? data.byId.get(speciesId) ?? null : null;
+  useEffect(() => {
+    if (initialSpecies) setSpeciesId(initialSpecies.id);
+  }, [initialSpecies]);
+
+  const species = speciesId ? (data.byId.get(speciesId) ?? null) : null;
 
   // Load a Pokémon into the row when editing starts.
   useEffect(() => {
@@ -155,13 +180,22 @@ export function EntryRow({
       lucky: flags.lucky,
       favorite: flags.favorite,
       variant: flags.variant ?? undefined,
-      tags: [...new Set(tags.split(",").map((t) => t.trim()).filter(Boolean))],
+      tags: [
+        ...new Set(
+          tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+        ),
+      ],
       caught: caught || undefined,
     };
     setSaving(true);
     try {
       await onSave(input);
-      setFlash(editing ? `Saved changes to ${species!.name}.` : `Added ${species!.name}, ${input.cp.toLocaleString()} CP.`);
+      setFlash(
+        editing ? `Saved changes to ${species!.name}.` : `Added ${species!.name}, ${input.cp.toLocaleString()} CP.`,
+      );
       if (!editing) {
         reset();
         // Keep the species selected so runs of the same Pokémon are quick; typing replaces it.
@@ -214,119 +248,177 @@ export function EntryRow({
         <h2 className="text-sm font-bold">
           {editing ? `Editing ${data.byId.get(editing.species)?.name ?? "Pokémon"}` : "Add a Pokémon"}
         </h2>
-        <p className="flex gap-4 text-xs text-ink-400">
-          <span><Key>Tab</Key> next field</span>
-          <span><Key>Enter</Key> {editing ? "save" : "add"}</span>
-          <span><Key>Esc</Key> {editing ? "cancel" : "clear"}</span>
-        </p>
-      </div>
-
-      <div className={`grid grid-cols-[2fr_0.8fr_0.7fr_1fr_1.5fr_1.5fr_auto] items-end gap-2 ${shaking ? "shake" : ""}`}>
-        <Field label="Species">
-          <Combobox
-            ref={speciesRef}
-            ariaLabel="Species"
-            options={speciesOptions}
-            value={speciesId}
-            onChange={setSpeciesId}
-            placeholder="Type a name or number"
-          />
-        </Field>
-        <Field label="CP">
-          <input className={field} value={cp} onChange={(e) => setCp(e.target.value)} inputMode="numeric" aria-label="CP" />
-        </Field>
-        <Field label="HP" hint="optional">
-          <input className={field} value={hp} onChange={(e) => setHp(e.target.value)} inputMode="numeric" aria-label="HP" />
-        </Field>
-        <Field label="Appraisal" hint="atk def hp">
-          <input
-            className={field}
-            value={iv}
-            onChange={(e) => setIv(e.target.value)}
-            placeholder="15 14 13"
-            aria-label="Appraisal: attack, defense and HP from 0 to 15"
-          />
-        </Field>
-        <Field label="Fast move" hint="optional">
-          <Combobox
-            ariaLabel="Fast move"
-            options={moveOptions(species, "fast")}
-            value={fast}
-            onChange={setFast}
-            disabled={!species}
-            maxResults={12}
-          />
-        </Field>
-        <Field label="Charged move" hint="optional">
-          <Combobox
-            ariaLabel="Charged move"
-            options={moveOptions(species, "charged")}
-            value={charged}
-            onChange={setCharged}
-            disabled={!species}
-            maxResults={12}
-          />
-        </Field>
-        <button
-          onClick={() => void submit(false)}
-          disabled={saving}
-          className="h-[38px] rounded-md bg-linear-to-r from-glow-400 to-ice-400 px-5 text-sm font-bold text-ink-950 hover:brightness-110 disabled:opacity-60"
-        >
-          {editing ? "Save" : "Add"}
-        </button>
-      </div>
-
-      <div className="mt-2 grid grid-cols-[1.6fr_1fr_1.2fr_1.2fr_0.9fr] items-end gap-2">
-        <Field label="Flags" hint="type s l d p f">
-          <FlagPicker flags={flags} onToggle={toggleFlag} />
-        </Field>
-        <Field label="Nickname" hint="optional">
-          <input className={field} value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={30} aria-label="Nickname" />
-        </Field>
-        <Field label="Second charged move" hint="optional">
-          <Combobox
-            ariaLabel="Second charged move"
-            options={moveOptions(species, "charged").filter((o) => o.value !== charged)}
-            value={charged2}
-            onChange={setCharged2}
-            disabled={!species || !charged}
-            maxResults={12}
-          />
-        </Field>
-        <Field label="Tags" hint="comma separated">
-          <input className={field} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="PvP, Trade" aria-label="Tags, separated by commas" />
-        </Field>
-        <Field label="Caught">
-          <input
-            type="date"
-            className={`${field} [color-scheme:dark]`}
-            value={caught}
-            max={today()}
-            aria-label="Date caught"
-            onChange={(e) => setCaughtDate(e.target.value)}
-          />
-        </Field>
-      </div>
-
-      <p className="mt-2.5 min-h-5 text-sm" role="status" aria-live="polite">
-        {flash ? (
-          <span className="text-glow-300">{flash}</span>
-        ) : check.status === "error" ? (
-          <span className="text-rose-300">
-            {check.message}
-            {check.canForce && <span className="text-ink-400"> Press Ctrl+Enter to save anyway.</span>}
-          </span>
-        ) : check.status === "ok" ? (
-          <span className="text-ink-300">
-            {check.ivPercent !== undefined && (
-              <span className="mr-3 font-semibold text-ink-100">
-                {check.ivPercent}% <Stars n={check.stars ?? 0} />
+        <div className="flex items-center gap-4 text-xs text-ink-400">
+          {mode === "full" && (
+            <p className="flex gap-4">
+              <span>
+                <Key>Tab</Key> next field
               </span>
-            )}
-            {check.note}
-          </span>
-        ) : null}
-      </p>
+              <span>
+                <Key>Enter</Key> {editing ? "save" : "add"}
+              </span>
+              <span>
+                <Key>Esc</Key> {editing ? "cancel" : "clear"}
+              </span>
+            </p>
+          )}
+          {!editing && (
+            <span className="flex rounded-md border border-ink-700 p-0.5" role="group" aria-label="Entry style">
+              {(["quick", "full"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => chooseMode(m)}
+                  aria-pressed={mode === m}
+                  className={`rounded px-2 py-0.5 font-semibold ${
+                    mode === m ? "bg-ink-700 text-ink-100" : "text-ink-400 hover:text-ink-100"
+                  }`}
+                >
+                  {m === "quick" ? "Quick line" : "Full form"}
+                </button>
+              ))}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {mode === "quick" ? (
+        <QuickEntry data={data} initialSpecies={initialSpecies} onSave={onSave} />
+      ) : (
+        <>
+          <div
+            className={`grid grid-cols-[2fr_0.8fr_0.7fr_1fr_1.5fr_1.5fr_auto] items-end gap-2 ${shaking ? "shake" : ""}`}
+          >
+            <Field label="Species">
+              <Combobox
+                ref={speciesRef}
+                ariaLabel="Species"
+                options={speciesOptions}
+                value={speciesId}
+                onChange={setSpeciesId}
+                placeholder="Type a name or number"
+              />
+            </Field>
+            <Field label="CP">
+              <input
+                className={field}
+                value={cp}
+                onChange={(e) => setCp(e.target.value)}
+                inputMode="numeric"
+                aria-label="CP"
+              />
+            </Field>
+            <Field label="HP" hint="optional">
+              <input
+                className={field}
+                value={hp}
+                onChange={(e) => setHp(e.target.value)}
+                inputMode="numeric"
+                aria-label="HP"
+              />
+            </Field>
+            <Field label="Appraisal" hint="atk def hp">
+              <input
+                className={field}
+                value={iv}
+                onChange={(e) => setIv(e.target.value)}
+                placeholder="15 14 13"
+                aria-label="Appraisal: attack, defense and HP from 0 to 15"
+              />
+            </Field>
+            <Field label="Fast move" hint="optional">
+              <Combobox
+                ariaLabel="Fast move"
+                options={moveOptions(species, "fast")}
+                value={fast}
+                onChange={setFast}
+                disabled={!species}
+                maxResults={12}
+              />
+            </Field>
+            <Field label="Charged move" hint="optional">
+              <Combobox
+                ariaLabel="Charged move"
+                options={moveOptions(species, "charged")}
+                value={charged}
+                onChange={setCharged}
+                disabled={!species}
+                maxResults={12}
+              />
+            </Field>
+            <button
+              onClick={() => void submit(false)}
+              disabled={saving}
+              className="h-[38px] rounded-md bg-linear-to-r from-glow-400 to-ice-400 px-5 text-sm font-bold text-ink-950 hover:brightness-110 disabled:opacity-60"
+            >
+              {editing ? "Save" : "Add"}
+            </button>
+          </div>
+
+          <div className="mt-2 grid grid-cols-[1.6fr_1fr_1.2fr_1.2fr_0.9fr] items-end gap-2">
+            <Field label="Flags" hint="type s l d p f">
+              <FlagPicker flags={flags} onToggle={toggleFlag} />
+            </Field>
+            <Field label="Nickname" hint="optional">
+              <input
+                className={field}
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={30}
+                aria-label="Nickname"
+              />
+            </Field>
+            <Field label="Second charged move" hint="optional">
+              <Combobox
+                ariaLabel="Second charged move"
+                options={moveOptions(species, "charged").filter((o) => o.value !== charged)}
+                value={charged2}
+                onChange={setCharged2}
+                disabled={!species || !charged}
+                maxResults={12}
+              />
+            </Field>
+            <Field label="Tags" hint="comma separated">
+              <input
+                className={field}
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="PvP, Trade"
+                aria-label="Tags, separated by commas"
+              />
+            </Field>
+            <Field label="Caught">
+              <input
+                type="date"
+                className={`${field} [color-scheme:dark]`}
+                value={caught}
+                max={today()}
+                aria-label="Date caught"
+                onChange={(e) => setCaughtDate(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <p className="mt-2.5 min-h-5 text-sm" role="status" aria-live="polite">
+            {flash ? (
+              <span className="text-glow-300">{flash}</span>
+            ) : check.status === "error" ? (
+              <span className="text-rose-300">
+                {check.message}
+                {check.canForce && <span className="text-ink-400"> Press Ctrl+Enter to save anyway.</span>}
+              </span>
+            ) : check.status === "ok" ? (
+              <span className="text-ink-300">
+                {check.ivPercent !== undefined && (
+                  <span className="mr-3 font-semibold text-ink-100">
+                    {check.ivPercent}% <Stars n={check.stars ?? 0} />
+                  </span>
+                )}
+                {check.note}
+              </span>
+            ) : null}
+          </p>
+        </>
+      )}
     </section>
   );
 }
@@ -343,7 +435,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function Key({ children }: { children: ReactNode }) {
+export function Key({ children }: { children: ReactNode }) {
   return <kbd className="rounded border border-ink-700 px-1 font-sans text-[11px] text-ink-300">{children}</kbd>;
 }
 
@@ -399,4 +491,3 @@ function FlagPicker({ flags, onToggle }: { flags: Flags; onToggle: (f: FlagName)
     </div>
   );
 }
-

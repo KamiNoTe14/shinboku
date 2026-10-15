@@ -8,6 +8,7 @@ import Bag from "./pages/Bag";
 import Recommendations from "./pages/Recommendations";
 import Pokedex from "./pages/Pokedex";
 import Raids from "./pages/Raids";
+import CatchUp from "./pages/CatchUp";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -33,6 +34,14 @@ export default function App() {
               element={
                 <RequireAuth>
                   <Recommendations />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="catch-up"
+              element={
+                <RequireAuth>
+                  <CatchUp />
                 </RequireAuth>
               }
             />
