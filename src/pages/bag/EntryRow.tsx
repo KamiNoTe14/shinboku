@@ -240,7 +240,7 @@ export function EntryRow({
 
   return (
     <section
-      className={`border-b border-ink-800 px-8 py-4 ${editing ? "bg-ice-500/[0.06]" : "bg-ink-900/40"}`}
+      className={`border-b border-ink-800 px-4 sm:px-8 py-4 ${editing ? "bg-ice-500/[0.06]" : "bg-ink-900/40"}`}
       onKeyDown={onKeys}
       aria-label={editing ? "Edit Pokémon" : "Add a Pokémon"}
     >
@@ -250,7 +250,7 @@ export function EntryRow({
         </h2>
         <div className="flex items-center gap-4 text-xs text-ink-400">
           {mode === "full" && (
-            <p className="flex gap-4">
+            <p className="hidden gap-4 md:flex">
               <span>
                 <Key>Tab</Key> next field
               </span>
@@ -286,7 +286,7 @@ export function EntryRow({
       ) : (
         <>
           <div
-            className={`grid grid-cols-[2fr_0.8fr_0.7fr_1fr_1.5fr_1.5fr_auto] items-end gap-2 ${shaking ? "shake" : ""}`}
+            className={`grid grid-cols-3 items-end gap-2 lg:grid-cols-[2fr_0.8fr_0.7fr_1fr_1.5fr_1.5fr_auto] [&>:first-child]:col-span-3 lg:[&>:first-child]:col-span-1 [&>:nth-child(5)]:col-span-3 sm:[&>:nth-child(5)]:col-span-1 lg:[&>:nth-child(5)]:col-span-1 [&>:nth-child(6)]:col-span-2 sm:[&>:nth-child(6)]:col-span-1 ${shaking ? "shake" : ""}`}
           >
             <Field label="Species">
               <Combobox
@@ -354,7 +354,7 @@ export function EntryRow({
             </button>
           </div>
 
-          <div className="mt-2 grid grid-cols-[1.6fr_1fr_1.2fr_1.2fr_0.9fr] items-end gap-2">
+          <div className="mt-2 grid grid-cols-2 items-end gap-2 lg:grid-cols-[1.6fr_1fr_1.2fr_1.2fr_0.9fr] [&>:first-child]:col-span-2 lg:[&>:first-child]:col-span-1">
             <Field label="Flags" hint="type s l d p f">
               <FlagPicker flags={flags} onToggle={toggleFlag} />
             </Field>

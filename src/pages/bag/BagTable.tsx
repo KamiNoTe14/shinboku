@@ -53,8 +53,12 @@ export function BagTable({
     else onSelect(id, "only");
   };
 
-  const th = (key: SortKey | null, label: string, align: "left" | "right" = "left", width?: string) => (
-    <th className={`px-3 py-2 font-semibold ${align === "right" ? "text-right" : "text-left"}`} style={{ width }}>
+  // Columns marked "wide" only show on larger screens.
+  const th = (key: SortKey | null, label: string, align: "left" | "right" = "left", width?: string, wide?: string) => (
+    <th
+      className={`px-2 py-2 font-semibold sm:px-3 ${align === "right" ? "text-right" : "text-left"} ${wide ?? ""}`}
+      style={{ width }}
+    >
       {key ? (
         <button
           onClick={() => onSort(key)}
@@ -75,22 +79,22 @@ export function BagTable({
       tabIndex={0}
       onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       onKeyDown={onKeyCommand}
-      className="min-h-0 flex-1 overflow-y-auto focus:outline-none"
+      className="@container max-h-[80vh] min-h-[60vh] flex-1 overflow-y-auto focus:outline-none lg:max-h-none lg:min-h-0"
       aria-label="Your bag. Click to select, shift-click for a range, ctrl-click to add or remove."
     >
       <table className="w-full table-fixed text-sm select-none">
         <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
           <tr className="border-b border-ink-800">
-            <th className="w-14 px-1 py-2">
+            <th className="w-12 px-1 py-2 sm:w-14">
               <span className="sr-only">Image</span>
             </th>
             {th("name", "Pokémon", "left")}
-            {th("cp", "CP", "right", "80px")}
-            {th("iv", "IVs", "left", "150px")}
-            {th("level", "Level", "right", "64px")}
-            {th(null, "Moves", "left")}
-            {th(null, "Tags", "left", "170px")}
-            {th("caught", "Caught", "right", "104px")}
+            {th("cp", "CP", "right", "72px")}
+            {th("iv", "IVs", "left", undefined, "w-[84px] @md:w-[150px]")}
+            {th("level", "Level", "right", "64px", "hidden @2xl:table-cell")}
+            {th(null, "Moves", "left", undefined, "hidden @4xl:table-cell")}
+            {th(null, "Tags", "left", "170px", "hidden @3xl:table-cell")}
+            {th("caught", "Caught", "right", "104px", "hidden @2xl:table-cell")}
           </tr>
         </thead>
         <tbody>
@@ -115,7 +119,7 @@ export function BagTable({
                 <td className="px-1">
                   <PokemonImage species={r.sp} style="pixel" size={44} shiny={r.shiny} />
                 </td>
-                <td className="truncate px-3">
+                <td className="truncate px-2 sm:px-3">
                   <span className="font-semibold">{r.sp.name}</span>
                   {r.shiny && (
                     <span className="ml-1.5 text-amber-300" title="Shiny" aria-label="Shiny">
@@ -132,11 +136,11 @@ export function BagTable({
                   {r.variant === "purified" && <Badge className="text-sky-100 bg-sky-300/12">Purified</Badge>}
                   {r.nickname && <span className="ml-2 text-xs text-ink-400">“{r.nickname}”</span>}
                 </td>
-                <td className="px-3 text-right font-display font-semibold tabular-nums">{r.cp.toLocaleString()}</td>
-                <td className="px-3">
+                <td className="px-2 text-right font-display font-semibold tabular-nums sm:px-3">{r.cp.toLocaleString()}</td>
+                <td className="px-2 sm:px-3">
                   {r.iv ? (
                     <span className="flex items-center gap-2">
-                      <span className="flex gap-0.5" title={`${r.iv[0]} / ${r.iv[1]} / ${r.iv[2]}`}>
+                      <span className="hidden gap-0.5 @md:flex" title={`${r.iv[0]} / ${r.iv[1]} / ${r.iv[2]}`}>
                         {r.iv.map((v, i) => (
                           <span key={i} className="block h-1.5 w-5 overflow-hidden rounded-full bg-ink-800">
                             <span
@@ -147,17 +151,20 @@ export function BagTable({
                         ))}
                       </span>
                       <span className={`tabular-nums ${r.ivPct === 100 ? "font-bold text-glow-300" : ""}`}>{r.ivPct}%</span>
-                      <Stars
-                        n={appraisalStars({ atk: r.iv[0], def: r.iv[1], sta: r.iv[2] })}
-                      />
+                      <span className="hidden @md:inline">
+                        <Stars n={appraisalStars({ atk: r.iv[0], def: r.iv[1], sta: r.iv[2] })} />
+                      </span>
                     </span>
                   ) : (
-                    <span className="text-ink-600">Not appraised</span>
+                    <span className="text-ink-600">
+                      <span className="@md:hidden">—</span>
+                      <span className="hidden @md:inline">Not appraised</span>
+                    </span>
                   )}
                 </td>
-                <td className="px-3 text-right tabular-nums text-ink-300">{r.level ?? ""}</td>
-                <td className="truncate px-3 text-ink-300">{moves.join(", ")}</td>
-                <td className="px-3">
+                <td className="hidden px-3 text-right text-ink-300 tabular-nums @2xl:table-cell">{r.level ?? ""}</td>
+                <td className="hidden truncate px-3 text-ink-300 @4xl:table-cell">{moves.join(", ")}</td>
+                <td className="hidden px-3 @3xl:table-cell">
                   {/* First tag, plus a count for the rest; hover to see them all. */}
                   {r.tags && r.tags.length > 0 && (
                     <span className="flex min-w-0 items-center gap-1" title={r.tags.join(", ")}>
@@ -172,7 +179,7 @@ export function BagTable({
                     </span>
                   )}
                 </td>
-                <td className="px-3 text-right text-xs text-ink-400 tabular-nums">{r.caught ?? ""}</td>
+                <td className="hidden px-3 text-right text-xs text-ink-400 tabular-nums @2xl:table-cell">{r.caught ?? ""}</td>
               </tr>
             );
           })}

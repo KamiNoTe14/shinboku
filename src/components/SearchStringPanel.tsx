@@ -37,7 +37,7 @@ export function SearchStringPanel({
   }, [onClose]);
 
   return (
-    <div ref={ref} className="absolute inset-x-8 top-full z-20 mt-2 rounded-xl border border-ink-700 bg-ink-900 p-4 text-sm shadow-2xl shadow-black/50">
+    <div ref={ref} className="absolute inset-x-4 sm:inset-x-8 top-full z-20 mt-2 rounded-xl border border-ink-700 bg-ink-900 p-4 text-sm shadow-2xl shadow-black/50">
       <div className="flex items-start justify-between gap-4">
         <p className="text-ink-300">
           {results.length === 1

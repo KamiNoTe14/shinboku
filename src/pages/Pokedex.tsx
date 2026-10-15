@@ -97,8 +97,8 @@ export default function Pokedex() {
     if (selectedId) document.getElementById(`dex-${selectedId}`)?.scrollIntoView({ block: "nearest" });
   }, [selectedId]);
 
-  const header = (key: SortKey, label: string, align: "left" | "right" = "right") => (
-    <th className={`px-3 py-2 font-semibold ${align === "right" ? "text-right" : "text-left"}`}>
+  const header = (key: SortKey, label: string, align: "left" | "right" = "right", extra = "") => (
+    <th className={`px-2 py-2 font-semibold sm:px-3 ${align === "right" ? "text-right" : "text-left"} ${extra}`}>
       <button
         className={`inline-flex items-center gap-1 hover:text-ink-100 ${sort.key === key ? "text-glow-300" : ""}`}
         onClick={() =>
@@ -112,7 +112,7 @@ export default function Pokedex() {
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col lg:h-full">
       <PageHeader
         title="Pokédex"
         subtitle={
@@ -121,7 +121,7 @@ export default function Pokedex() {
             : "Pokémon GO stats, moves and evolutions"
         }
         actions={
-          <div className="relative w-72">
+          <div className="relative w-full sm:w-72">
             <input
               ref={searchRef}
               value={query}
@@ -136,7 +136,7 @@ export default function Pokedex() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 px-8 py-3">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 px-4 py-3 sm:px-8">
         {ALL_TYPES.map((t) => (
           <button
             key={t}
@@ -171,22 +171,22 @@ export default function Pokedex() {
         </label>
       </div>
 
-      {error && <p className="px-8 py-6 text-rose-300">{error}. Refresh the page to try again.</p>}
-      {!data && !error && <p className="px-8 py-6 text-sm text-ink-400">Loading Pokédex…</p>}
+      {error && <p className="px-4 sm:px-8 py-6 text-rose-300">{error}. Refresh the page to try again.</p>}
+      {!data && !error && <p className="px-4 sm:px-8 py-6 text-sm text-ink-400">Loading Pokédex…</p>}
 
       {data && (
-        <div className="flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1 overflow-y-auto">
+        <div className="flex flex-1 lg:min-h-0">
+          <div className="min-w-0 flex-1 lg:overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
                 <tr className="border-b border-ink-800">
-                  {header("dex", "#", "left")}
+                  {header("dex", "#", "left", "hidden sm:table-cell")}
                   <th className="w-12 px-1 py-2"><span className="sr-only">Image</span></th>
                   {header("name", "Name", "left")}
-                  <th className="px-3 py-2 text-left font-semibold">Type</th>
-                  {header("atk", "Attack")}
-                  {header("def", "Defense")}
-                  {header("sta", "Stamina")}
+                  <th className="px-2 py-2 text-left font-semibold sm:px-3">Type</th>
+                  {header("atk", "Attack", "right", "hidden md:table-cell")}
+                  {header("def", "Defense", "right", "hidden md:table-cell")}
+                  {header("sta", "Stamina", "right", "hidden md:table-cell")}
                   {header("maxcp", "Max CP")}
                 </tr>
               </thead>
@@ -200,13 +200,13 @@ export default function Pokedex() {
                       s.id === selectedId ? "bg-glow-500/12" : "hover:bg-ink-900"
                     }`}
                   >
-                    <td className="px-3 py-2 font-display text-ink-400 tabular-nums">
+                    <td className="hidden px-3 py-2 font-display text-ink-400 tabular-nums sm:table-cell">
                       {String(s.dex).padStart(4, "0")}
                     </td>
                     <td className="px-1 py-0.5">
                       <PokemonImage species={s} style="pixel" size={44} silhouette={hidden(s)} />
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2 sm:px-3">
                       <span className={`font-semibold ${s.id === selectedId ? "text-glow-300" : ""}`}>{s.name}</span>
                       {s.tags?.filter((t) => TAG_LABELS[t]).map((t) => (
                         <span key={t} className="ml-2 text-[11px] text-ink-400">
@@ -214,17 +214,17 @@ export default function Pokedex() {
                         </span>
                       ))}
                     </td>
-                    <td className="px-3 py-2">
-                      <span className="flex gap-1">
+                    <td className="px-2 py-2 sm:px-3">
+                      <span className="flex flex-wrap gap-1">
                         {s.types.map((t) => (
                           <TypeBadge key={t} type={t} />
                         ))}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{s.atk}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{s.def}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{s.sta}</td>
-                    <td className="px-3 py-2 text-right font-display font-semibold tabular-nums">
+                    <td className="hidden px-3 py-2 text-right tabular-nums md:table-cell">{s.atk}</td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums md:table-cell">{s.def}</td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums md:table-cell">{s.sta}</td>
+                    <td className="px-2 py-2 text-right font-display font-semibold tabular-nums sm:px-3">
                       {maxCP50(s).toLocaleString()}
                     </td>
                   </tr>
@@ -232,11 +232,11 @@ export default function Pokedex() {
               </tbody>
             </table>
             {rows.length === 0 && (
-              <p className="px-8 py-10 text-sm text-ink-400">
+              <p className="px-4 sm:px-8 py-10 text-sm text-ink-400">
                 No Pokémon match that search. Try a shorter name or clear the type filter.
               </p>
             )}
-            <p className="px-8 py-6 text-xs text-ink-400">
+            <p className="px-4 sm:px-8 py-6 text-xs text-ink-400">
               Game data from PvPoke, updated {data.sourceUpdated?.slice(0, 10) ?? "recently"}. Max CP is a
               perfect-IV Pokémon at level 50.
             </p>
@@ -277,7 +277,7 @@ function Details({
   const statMax = 420;
 
   return (
-    <aside className="w-[440px] shrink-0 overflow-y-auto border-l border-ink-800 bg-ink-900/60 px-6 py-6">
+    <aside className="fixed inset-0 z-40 overflow-y-auto bg-ink-950 px-5 py-5 lg:static lg:z-auto lg:w-[440px] lg:shrink-0 lg:border-l lg:border-ink-800 lg:bg-ink-900/60 lg:px-6 lg:py-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-sm text-ink-400">#{String(s.dex).padStart(4, "0")}</p>
@@ -293,7 +293,8 @@ function Details({
           className="rounded-md px-2 py-1 text-sm text-ink-400 hover:bg-ink-800 hover:text-ink-100"
           aria-label="Close details"
         >
-          Esc
+          <span className="text-lg lg:hidden">✕</span>
+          <span className="hidden lg:inline">Esc</span>
         </button>
       </div>
 

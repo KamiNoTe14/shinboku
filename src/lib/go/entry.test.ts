@@ -23,6 +23,8 @@ describe("parsing", () => {
     expect(parseAppraisal("15 14 13")).toEqual([15, 14, 13]);
     expect(parseAppraisal("15/14/13")).toEqual([15, 14, 13]);
     expect(parseAppraisal("0,15,15")).toEqual([0, 15, 15]);
+    expect(parseAppraisal("15.14.13")).toEqual([15, 14, 13]);
+    expect(parseAppraisal("151413")).toEqual([15, 14, 13]);
     expect(parseAppraisal(" ")).toBeNull();
     expect(parseAppraisal("16 1 1")).toBe("invalid");
     expect(parseAppraisal("15 14")).toBe("invalid");

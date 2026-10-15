@@ -1,4 +1,5 @@
-import { NavLink, Outlet, Link } from "react-router";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../auth/AuthProvider";
@@ -25,76 +26,136 @@ const nav: { heading: string; items: NavItem[] }[] = [
 ];
 
 export default function Layout() {
-  const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Close the phone menu after navigating.
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  const current = nav.flatMap((g) => g.items).find((i) => location.pathname.startsWith(i.to));
 
   return (
-    <div className="flex h-full">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-900">
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* Desktop: a fixed sidebar. */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-900 lg:flex">
         <Link to="/" className="px-5 pt-5 pb-6">
           <Logo />
         </Link>
-
-        <nav className="flex-1 space-y-6 px-3">
-          {nav.map((group) => (
-            <div key={group.heading}>
-              <p className="px-2 pb-1.5 text-[11px] font-semibold tracking-wider text-ink-400 uppercase">
-                {group.heading}
-              </p>
-              <ul className="space-y-0.5">
-                {group.items.map((item) => (
-                  <li key={item.to}>
-                    <NavLink
-                      to={item.to}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium transition ${
-                          isActive
-                            ? "bg-navy text-ink-100"
-                            : "text-ink-300 hover:bg-ink-800 hover:text-ink-100"
-                        }`
-                      }
-                    >
-                      <Icon name={item.icon} />
-                      <span className="flex-1">{item.label}</span>
-                      {item.private && !user && <Icon name="lock" className="text-ink-600" />}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
-
-        <div className="border-t border-ink-800 p-3">
-          {user ? (
-            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-              <Avatar name={user.displayName || user.email || "?"} photo={user.photoURL} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{user.displayName || "Trainer"}</p>
-                <p className="truncate text-xs text-ink-400">{user.email}</p>
-              </div>
-              <button
-                onClick={() => signOut(auth)}
-                title="Sign out"
-                className="rounded-md p-1.5 text-ink-400 hover:bg-ink-800 hover:text-ink-100"
-              >
-                <Icon name="logout" />
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/signin"
-              className="block rounded-lg bg-linear-to-r from-glow-400 to-ice-400 px-3 py-2 text-center text-sm font-bold text-ink-950 hover:brightness-110"
-            >
-              Sign in
-            </Link>
-          )}
-        </div>
+        <SidebarContent />
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-y-auto">
+      {/* Phones and tablets: a top bar with a slide-out menu. */}
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ink-800 bg-ink-900 px-3 lg:hidden">
+        <button
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          className="grid h-10 w-10 place-items-center rounded-lg text-ink-300 hover:bg-ink-800 hover:text-ink-100"
+        >
+          <Icon name="menu" className="h-5 w-5" />
+        </button>
+        <Link to="/" aria-label="Shinboku home">
+          <Logo />
+        </Link>
+        {current && <span className="ml-auto truncate pr-1 text-sm font-semibold text-ink-300">{current.label}</span>}
+      </header>
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <button
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          />
+          <aside className="drawer-in absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-ink-800 bg-ink-900">
+            <div className="flex items-center justify-between px-5 pt-4 pb-5">
+              <Link to="/">
+                <Logo />
+              </Link>
+              <button
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+                className="grid h-10 w-10 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-ink-100"
+              >
+                ✕
+              </button>
+            </div>
+            <SidebarContent />
+          </aside>
+        </div>
+      )}
+
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function SidebarContent() {
+  const { user } = useAuth();
+  return (
+    <>
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3">
+        {nav.map((group) => (
+          <div key={group.heading}>
+            <p className="px-2 pb-1.5 text-[11px] font-semibold tracking-wider text-ink-400 uppercase">
+              {group.heading}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-sm font-medium transition lg:py-2 ${
+                        isActive ? "bg-navy text-ink-100" : "text-ink-300 hover:bg-ink-800 hover:text-ink-100"
+                      }`
+                    }
+                  >
+                    <Icon name={item.icon} />
+                    <span className="flex-1">{item.label}</span>
+                    {item.private && !user && <Icon name="lock" className="text-ink-600" />}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-ink-800 p-3">
+        {user ? (
+          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+            <Avatar name={user.displayName || user.email || "?"} photo={user.photoURL} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{user.displayName || "Trainer"}</p>
+              <p className="truncate text-xs text-ink-400">{user.email}</p>
+            </div>
+            <button
+              onClick={() => signOut(auth)}
+              title="Sign out"
+              aria-label="Sign out"
+              className="rounded-md p-2 text-ink-400 hover:bg-ink-800 hover:text-ink-100"
+            >
+              <Icon name="logout" />
+            </button>
+          </div>
+        ) : (
+          <Link
+            to="/signin"
+            className="block rounded-lg bg-linear-to-r from-glow-400 to-ice-400 px-3 py-2 text-center text-sm font-bold text-ink-950 hover:brightness-110"
+          >
+            Sign in
+          </Link>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -115,6 +176,7 @@ const icons = {
   book: "M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Zm0 13a3 3 0 0 1 3-3h10",
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-4h.01",
   checklist: "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9",
+  menu: "M4 7h16M4 12h16M4 17h16",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6v-9Z",
   logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10",
 };

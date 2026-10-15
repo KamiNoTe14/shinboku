@@ -58,6 +58,8 @@ export default function Bag() {
   const [tagInput, setTagInput] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  // On touch screens there's no shift or ctrl, so "Select" turns taps into toggles.
+  const [selectMode, setSelectMode] = useState(false);
   const [history, setHistory] = useState<{ id: string; undo: Change; label: string }[]>([]);
 
   const allRows = useMemo<Row[]>(() => (data ? toRows(bag.pokemon, data) : []), [bag.pokemon, data]);
@@ -128,8 +130,8 @@ export default function Bag() {
   const selectedRows = useMemo(() => rows.filter((r) => selected.has(r.id)), [rows, selected]);
   // The catch card follows a single selection, even if a change (like evolving) moves it out of the current filter.
   const cardRow = useMemo(
-    () => (selected.size === 1 ? (allRows.find((r) => selected.has(r.id)) ?? null) : null),
-    [allRows, selected],
+    () => (selected.size === 1 && !selectMode ? (allRows.find((r) => selected.has(r.id)) ?? null) : null),
+    [allRows, selected, selectMode],
   );
 
   // Writes show up in the bag straight away from the local cache, so this doesn't wait for the
@@ -297,13 +299,13 @@ export default function Bag() {
       return next;
     });
 
-  if (dataError) return <p className="px-8 py-8 text-rose-300">{dataError}. Refresh the page to try again.</p>;
-  if (!data) return <p className="px-8 py-8 text-sm text-ink-400">Loading…</p>;
+  if (dataError) return <p className="px-4 sm:px-8 py-8 text-rose-300">{dataError}. Refresh the page to try again.</p>;
+  if (!data) return <p className="px-4 sm:px-8 py-8 text-sm text-ink-400">Loading…</p>;
 
   const allFavorite = selectedRows.length > 0 && selectedRows.every((r) => r.favorite);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col lg:h-full">
       <PageHeader
         title="Bag"
         subtitle={
@@ -312,12 +314,12 @@ export default function Bag() {
             : `${allRows.length.toLocaleString()} Pokémon logged${rows.length !== allRows.length ? `, ${rows.length.toLocaleString()} shown` : ""}`
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name, nickname or tag"
-              className="w-72 rounded-lg border border-ink-700 bg-ink-900 px-3 py-2 text-sm placeholder:text-ink-400 focus:border-glow-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-900 px-3 py-2 sm:w-72 sm:flex-none text-sm placeholder:text-ink-400 focus:border-glow-500 focus:outline-none"
               aria-label="Search your bag"
             />
             <button
@@ -354,13 +356,13 @@ export default function Bag() {
       <EntryRow data={data} initialSpecies={initialSpecies} editing={editing} onSave={save} onCancelEdit={() => setEditing(null)} />
 
       {bag.error && (
-        <div className="mx-8 mt-4 rounded-lg border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+        <div className="mx-4 sm:mx-8 mt-4 rounded-lg border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
           {bag.error} Publish the latest <code>firestore.rules</code> in the Firebase console under Firestore, then
           Rules.
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 px-8 py-2.5">
+      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-ink-800 px-4 py-2.5 sm:flex-wrap sm:px-8 [&>*]:shrink-0">
         {FILTERS.map((f) => (
           <Chip key={f.key} on={filters.has(f.key)} onClick={() => toggleFilter(f.key)}>
             {f.label}
@@ -378,18 +380,29 @@ export default function Bag() {
           when a selection starts or ends. The search-string panel floats over the table. */}
       <div className="relative">
         <div
-          className={`flex h-12 items-center gap-2 border-b px-8 text-sm ${
+          className={`no-scrollbar flex h-12 items-center gap-2 overflow-x-auto border-b px-4 text-sm whitespace-nowrap sm:px-8 [&>*]:shrink-0 ${
             selected.size > 0 ? "border-glow-500/30 bg-glow-500/[0.07]" : "border-ink-800"
           }`}
         >
           {selected.size === 0 ? (
-            <span className="text-ink-400">
-              {notice ??
-                "Click a Pokémon to open its card. Shift-click selects a range, Ctrl-click adds or removes one."}
-            </span>
+            <>
+              <span className="truncate text-ink-400 lg:hidden">{notice ?? "Tap a Pokémon to open its card."}</span>
+              <span className="hidden text-ink-400 lg:inline">
+                {notice ??
+                  "Click a Pokémon to open its card. Shift-click selects a range, Ctrl-click adds or removes one."}
+              </span>
+              <span className="ml-auto lg:hidden">
+                <ActionButton onClick={() => setSelectMode(true)}>Select</ActionButton>
+              </span>
+            </>
           ) : (
             <>
               <span className="mr-2 font-semibold text-glow-300">{selected.size.toLocaleString()} selected</span>
+              {!selectMode && (
+                <span className="lg:hidden">
+                  <ActionButton onClick={() => setSelectMode(true)}>Select more</ActionButton>
+                </span>
+              )}
               <ActionButton onClick={() => void openSearches()} primary>
                 Copy search string
               </ActionButton>
@@ -449,7 +462,14 @@ export default function Bag() {
                   Delete
                 </ActionButton>
               )}
-              <ActionButton onClick={() => setSelected(new Set())}>Clear</ActionButton>
+              <ActionButton
+                onClick={() => {
+                  setSelected(new Set());
+                  setSelectMode(false);
+                }}
+              >
+                {selectMode ? "Done" : "Clear"}
+              </ActionButton>
             </>
           )}
         </div>
@@ -460,7 +480,7 @@ export default function Bag() {
       </div>
 
       {!bag.loading && allRows.length === 0 && !bag.error ? (
-        <div className="mx-8 mt-8 max-w-2xl">
+        <div className="mx-4 sm:mx-8 mt-8 max-w-2xl">
           <h2 className="text-lg font-bold">Your bag is empty</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-300">
             Add your first Pokémon in the row above. Start typing a species, press <kbd>Tab</kbd> to move through CP, HP
@@ -484,7 +504,7 @@ export default function Bag() {
           </p>
         </div>
       ) : rows.length === 0 && allRows.length > 0 ? (
-        <p className="px-8 py-8 text-sm text-ink-400">
+        <p className="px-4 sm:px-8 py-8 text-sm text-ink-400">
           No Pokémon match these filters.{" "}
           <button
             className="text-glow-400 hover:text-glow-300"
@@ -498,12 +518,12 @@ export default function Bag() {
           </button>
         </p>
       ) : (
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-[75vh] flex-1 lg:min-h-0">
           <BagTable
             rows={rows}
             data={data}
             selected={selected}
-            onSelect={onSelect}
+            onSelect={(id, mode) => onSelect(id, selectMode && mode === "only" ? "toggle" : mode)}
             onEdit={setEditing}
             onKeyCommand={onKeyCommand}
             sort={sort}
@@ -522,7 +542,14 @@ export default function Bag() {
               data={data}
                 onPowerUp={(to) => doPowerUp(cardRow, to)}
               onEvolve={(target, cp) => doEvolve(cardRow, target, cp)}
-              onEdit={() => setEditing(cardRow)}
+              onEdit={() => {
+              setEditing(cardRow);
+              // On phones the card covers the page, so close it to show the form.
+              if (!window.matchMedia("(min-width: 1024px)").matches) {
+                setSelected(new Set());
+                document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
               onFavorite={() => user && void setFavorite(user.uid, [cardRow.id], !cardRow.favorite)}
               onClose={() => setSelected(new Set())}
             />

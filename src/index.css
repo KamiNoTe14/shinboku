@@ -61,3 +61,17 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .shake { animation: none; }
 }
+
+/* Phone menu slides in from the left. */
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+.drawer-in { animation: drawer-in 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-in { animation: none; }
+}
+
+/* Horizontally scrolling chip and action rows on phones. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

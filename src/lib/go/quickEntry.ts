@@ -111,7 +111,7 @@ const isIv = (n: number) => Number.isInteger(n) && n >= 0 && n <= 15;
 
 /** "15/14/13", "15-14-13" or "151413" as one token. */
 function compactIv(token: string): [number, number, number] | null {
-  const parts = token.split(/[/\-:,]/).filter(Boolean);
+  const parts = token.split(/[/\-:,.]/).filter(Boolean);
   if (parts.length === 3 && parts.every((p) => /^\d{1,2}$/.test(p))) {
     const n = parts.map(Number) as [number, number, number];
     return n.every(isIv) ? n : null;

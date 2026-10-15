@@ -28,8 +28,8 @@ const SHOWN = 25;
 
 export default function Raids() {
   const { data, error } = useGameData();
-  if (error) return <p className="px-8 py-8 text-rose-300">{error}. Refresh the page to try again.</p>;
-  if (!data) return <p className="px-8 py-8 text-sm text-ink-400">Loading game data…</p>;
+  if (error) return <p className="px-4 sm:px-8 py-8 text-rose-300">{error}. Refresh the page to try again.</p>;
+  if (!data) return <p className="px-4 sm:px-8 py-8 text-sm text-ink-400">Loading game data…</p>;
   return <RaidsLoaded data={data} />;
 }
 
@@ -98,8 +98,8 @@ function RaidsLoaded({ data }: { data: GameData }) {
     <div className="pb-12">
       <PageHeader title="Raid counters" subtitle="The best attackers against any boss, and the best team from your bag" />
 
-      <div className="flex flex-wrap items-end gap-4 border-b border-ink-800 px-8 py-4">
-        <label className="w-72">
+      <div className="flex flex-wrap items-end gap-4 border-b border-ink-800 px-4 sm:px-8 py-4">
+        <label className="w-full sm:w-72">
           <span className="mb-1 block text-xs font-semibold text-ink-400">Raid boss</span>
           <Combobox
             ariaLabel="Raid boss"
@@ -110,7 +110,7 @@ function RaidsLoaded({ data }: { data: GameData }) {
             maxResults={10}
           />
         </label>
-        <label className="w-48">
+        <label className="min-w-0 flex-1 sm:w-48 sm:flex-none">
           <span className="mb-1 block text-xs font-semibold text-ink-400">Weather</span>
           <select
             value={weather ?? ""}
@@ -135,8 +135,8 @@ function RaidsLoaded({ data }: { data: GameData }) {
         </div>
       </div>
 
-      <section className="flex flex-wrap items-center gap-6 border-b border-ink-800 bg-ink-900/40 px-8 py-5">
-        <PokemonImage species={boss} style="home" size={112} eager className="drop-shadow-[0_8px_24px_rgba(82,216,178,0.25)]" />
+      <section className="flex flex-wrap items-center gap-x-6 gap-y-4 border-b border-ink-800 bg-ink-900/40 px-4 py-5 sm:px-8">
+        <PokemonImage species={boss} style="home" size={96} eager className="drop-shadow-[0_8px_24px_rgba(82,216,178,0.25)]" />
         <div className="min-w-0">
           <h2 className="font-display text-2xl font-bold">{boss.name}</h2>
           <div className="mt-1 flex gap-1.5">
@@ -145,7 +145,7 @@ function RaidsLoaded({ data }: { data: GameData }) {
             ))}
           </div>
         </div>
-        <dl className="grid min-w-0 flex-1 grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
+        <dl className="grid min-w-0 flex-1 basis-full grid-cols-[auto_1fr] md:basis-auto items-center gap-x-4 gap-y-2 text-sm">
           <dt className="text-xs font-semibold text-ink-400">Weak to</dt>
           <dd className="flex flex-wrap gap-1.5">
             {weak
@@ -172,7 +172,7 @@ function RaidsLoaded({ data }: { data: GameData }) {
         </dl>
       </section>
 
-      <div className="grid gap-8 px-8 pt-6 2xl:grid-cols-[minmax(0,1fr)_460px]">
+      <div className="grid gap-8 px-4 sm:px-8 pt-6 2xl:grid-cols-[minmax(0,1fr)_460px]">
         <section className="min-w-0">
           <h3 className="text-lg font-bold">Best counters</h3>
           <p className="mt-1 text-sm text-ink-400">
@@ -182,13 +182,13 @@ function RaidsLoaded({ data }: { data: GameData }) {
           <table className="mt-4 w-full table-fixed text-sm">
             <thead className="text-xs text-ink-400">
               <tr className="border-b border-ink-800 text-left">
-                <th className="w-10 py-2 font-semibold">#</th>
-                <th className="w-12" />
+                <th className="w-7 py-2 font-semibold sm:w-10">#</th>
+                <th className="w-10 sm:w-12" />
                 <th className="py-2 font-semibold">Pokémon</th>
-                <th className="py-2 font-semibold">Moves</th>
-                <th className="w-16 py-2 text-right font-semibold">DPS</th>
-                <th className="w-16 py-2 text-right font-semibold">TDO</th>
-                <th className="w-32 py-2 pl-4 font-semibold">Strength</th>
+                <th className="hidden py-2 font-semibold md:table-cell">Moves</th>
+                <th className="hidden w-16 py-2 text-right font-semibold sm:table-cell">DPS</th>
+                <th className="hidden w-16 py-2 text-right font-semibold sm:table-cell">TDO</th>
+                <th className="w-24 py-2 pl-3 font-semibold sm:w-32 sm:pl-4">Strength</th>
               </tr>
             </thead>
             <tbody>
@@ -203,15 +203,20 @@ function RaidsLoaded({ data }: { data: GameData }) {
                     {c.shadow && <Badge tone="violet">Shadow</Badge>}
                     {c.sp.mega && <Badge tone="amber">{c.sp.id.includes("primal") ? "Primal" : "Mega"}</Badge>}
                     {own(c) && <Badge tone="glow">In your bag</Badge>}
+                    <span className="block text-xs text-ink-300 md:hidden">
+                      <MoveName id={c.fast} data={data} elite={isElite(c.sp, c.fast)} />
+                      <span className="text-ink-600"> · </span>
+                      <MoveName id={c.charged} data={data} elite={isElite(c.sp, c.charged)} />
+                    </span>
                   </td>
-                  <td className="py-1.5 text-ink-300">
+                  <td className="hidden py-1.5 text-ink-300 md:table-cell">
                     <MoveName id={c.fast} data={data} elite={isElite(c.sp, c.fast)} />
                     <span className="text-ink-600"> · </span>
                     <MoveName id={c.charged} data={data} elite={isElite(c.sp, c.charged)} />
                   </td>
-                  <td className="text-right tabular-nums">{c.perf.dps.toFixed(1)}</td>
-                  <td className="text-right text-ink-300 tabular-nums">{Math.round(c.perf.tdo)}</td>
-                  <td className="pl-4">
+                  <td className="hidden text-right tabular-nums sm:table-cell">{c.perf.dps.toFixed(1)}</td>
+                  <td className="hidden text-right text-ink-300 tabular-nums sm:table-cell">{Math.round(c.perf.tdo)}</td>
+                  <td className="pl-3 sm:pl-4">
                     <Strength pct={relativeStrength(c.perf.score, topScore)} />
                   </td>
                 </tr>
@@ -236,7 +241,7 @@ function RaidsLoaded({ data }: { data: GameData }) {
                   Copy search string
                 </button>
                 {searches && (
-                  <div className="absolute top-full right-0 w-[380px]">
+                  <div className="absolute top-full right-0 w-[min(380px,calc(100vw-2rem))]">
                     <SearchStringPanel
                       results={searches}
                       onClose={() => setSearches(null)}
@@ -324,7 +329,7 @@ function TeamCard({ m, i, data, pct }: { m: TeamMember; i: number; data: GameDat
           {m.assumedMoves && <span className="ml-1.5 text-ink-400">(assumed)</span>}
         </div>
       </div>
-      <div className="w-24">
+      <div className="w-20 sm:w-24">
         <Strength pct={pct} />
       </div>
     </li>

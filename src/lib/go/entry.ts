@@ -3,11 +3,12 @@
 import type { Species } from "./gamedata";
 import { appraisalStars, ivPercent, matchingLevels, type IVs } from "./stats";
 
-/** "15 14 13", "15/14/13", "15,14,13" or "15-14-13" → [15, 14, 13]. Blank → null. */
+/** "15 14 13", "15/14/13", "15.14.13", "15-14-13" or "151413" → [15, 14, 13]. Blank → null. */
 export function parseAppraisal(text: string): [number, number, number] | null | "invalid" {
   const t = text.trim();
   if (!t) return null;
-  const parts = t.split(/[\s/,\-]+/).filter(Boolean);
+  // Six digits ("151413") or any separator, including the "." on phone number pads.
+  const parts = /^\d{6}$/.test(t) ? [t.slice(0, 2), t.slice(2, 4), t.slice(4)] : t.split(/[\s/,.\-]+/).filter(Boolean);
   if (parts.length !== 3 || !parts.every((p) => /^\d{1,2}$/.test(p))) return "invalid";
   const nums = parts.map(Number) as [number, number, number];
   return nums.every((n) => n >= 0 && n <= 15) ? nums : "invalid";

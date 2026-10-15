@@ -114,7 +114,7 @@ export function QuickEntry({
 
   return (
     <div>
-      <div className={`flex items-stretch gap-2 ${shaking ? "shake" : ""}`}>
+      <div className={`flex flex-wrap items-stretch gap-2 sm:flex-nowrap ${shaking ? "shake" : ""}`}>
         {speechSupported() && (
           <button
             onClick={() => {
@@ -144,8 +144,10 @@ export function QuickEntry({
           aria-label="Quick entry: species, CP and appraisal on one line"
           autoComplete="off"
           spellCheck={false}
-          autoFocus
-          className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-950 px-3.5 py-2.5 font-display text-lg tracking-wide placeholder:font-sans placeholder:text-sm placeholder:tracking-normal placeholder:text-ink-600 focus:border-glow-500 focus:outline-none"
+          // Don't pop up the on-screen keyboard as soon as the page opens on a phone.
+          autoFocus={typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches}
+          enterKeyHint="enter"
+          className="order-first min-w-0 basis-full rounded-lg border border-ink-700 bg-ink-950 px-3.5 py-2.5 sm:order-none sm:flex-1 sm:basis-auto font-display text-lg tracking-wide placeholder:font-sans placeholder:text-sm placeholder:tracking-normal placeholder:text-ink-600 focus:border-glow-500 focus:outline-none"
         />
         <input
           type="date"
@@ -160,7 +162,7 @@ export function QuickEntry({
           }}
           aria-label="Date caught"
           title="Date caught"
-          className="w-40 rounded-lg border border-ink-700 bg-ink-950 px-2.5 text-sm [color-scheme:dark] focus:border-glow-500 focus:outline-none"
+          className="h-11 min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-950 px-2.5 text-sm sm:h-auto sm:w-40 sm:flex-none [color-scheme:dark] focus:border-glow-500 focus:outline-none"
         />
         <button
           onClick={() => void submit(line, false)}
@@ -238,7 +240,7 @@ export function QuickEntry({
         )}
       </div>
 
-      <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-400">
+      <p className="mt-1 hidden flex-wrap gap-x-4 gap-y-1 text-xs text-ink-400 sm:flex">
         <span>
           Appraisal: <code className="text-ink-300">15 14 13</code>, <code className="text-ink-300">15/14/13</code> or{" "}
           <code className="text-ink-300">151413</code>, or leave it off

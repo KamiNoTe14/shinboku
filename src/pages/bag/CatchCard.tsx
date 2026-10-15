@@ -47,7 +47,7 @@ export function CatchCard({
   return (
     <aside
       onKeyDown={onKeyDown}
-      className="flex w-[400px] shrink-0 flex-col overflow-y-auto border-l border-ink-800 bg-ink-950"
+      className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-ink-950 lg:static lg:z-auto lg:w-[400px] lg:shrink-0 lg:border-l lg:border-ink-800"
       aria-label={`${sp.name} details`}
     >
       {/* Hero: CP, level arc and the 3D render, tinted by type like the in-game card. */}
@@ -151,7 +151,7 @@ export function CatchCard({
               )}
             </div>
             <p className="mt-2 text-xs text-ink-400">
-              Level {one.level} → {one.next}. Press <kbd>P</kbd> to power up the selected Pokémon.
+              Level {one.level} → {one.next}.<span className="hidden lg:inline"> Press <kbd>P</kbd> to power up the selected Pokémon.</span>
             </p>
           </>
         ) : (
@@ -234,7 +234,7 @@ export function CatchCard({
         >
           Edit
         </button>
-        <span className="text-xs text-ink-400">
+        <span className="hidden text-xs text-ink-400 lg:inline">
           <kbd>E</kbd> edit · <kbd>P</kbd> power up · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo
         </span>
       </div>

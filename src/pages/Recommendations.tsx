@@ -41,6 +41,7 @@ export default function Recommendations() {
   const [searches, setSearches] = useState<SearchResult[] | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const rows = useMemo(() => (data ? toRows(bag.pokemon, data) : []), [bag.pokemon, data]);
   const recs = useMemo(() => (data ? recommend(rows, data) : null), [rows, data]);
@@ -91,8 +92,8 @@ export default function Recommendations() {
     return () => clearTimeout(t);
   }, [notice]);
 
-  if (dataError) return <p className="px-8 py-8 text-rose-300">{dataError}. Refresh the page to try again.</p>;
-  if (!data || !recs || bag.loading) return <p className="px-8 py-8 text-sm text-ink-400">Working out recommendations…</p>;
+  if (dataError) return <p className="px-4 sm:px-8 py-8 text-rose-300">{dataError}. Refresh the page to try again.</p>;
+  if (!data || !recs || bag.loading) return <p className="px-4 sm:px-8 py-8 text-sm text-ink-400">Working out recommendations…</p>;
 
   const selectedRows = [...new Map(list.filter((a) => selected.has(a.row.id)).map((a) => [a.row.id, a.row])).values()];
 
@@ -144,14 +145,14 @@ export default function Recommendations() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col lg:h-full">
       <PageHeader
         title="Recommendations"
         subtitle={`Based on the ${rows.length.toLocaleString()} Pokémon in your bag`}
       />
 
       {rows.length === 0 ? (
-        <div className="mx-8 mt-8 max-w-xl text-sm leading-relaxed text-ink-300">
+        <div className="mx-4 sm:mx-8 mt-8 max-w-xl text-sm leading-relaxed text-ink-300">
           <h2 className="text-lg font-bold text-ink-100">Nothing to recommend yet</h2>
           <p className="mt-2">
             Add Pokémon to your{" "}
@@ -164,7 +165,8 @@ export default function Recommendations() {
         </div>
       ) : (
         <>
-          <div className="flex items-end gap-1 border-b border-ink-800 px-8 pt-3">
+          <div className="flex flex-wrap items-end gap-x-1 border-b border-ink-800 px-4 pt-3 sm:px-8">
+            <div className="no-scrollbar -mx-4 flex min-w-0 basis-full items-end gap-1 overflow-x-auto px-4 whitespace-nowrap sm:mx-0 sm:basis-auto sm:px-0">
             <TabButton on={tab === "transfer"} onClick={() => setTab("transfer")} count={recs.transfer.length}>
               Transfer
             </TabButton>
@@ -177,8 +179,9 @@ export default function Recommendations() {
             <TabButton on={tab === "power"} onClick={() => setTab("power")} count={powerCount}>
               Power up for raids
             </TabButton>
+            </div>
             {tab === "pvp" && (
-              <div className="mb-2 ml-auto flex gap-1">
+              <div className="mb-2 flex gap-1 pt-2 sm:ml-auto sm:pt-0">
                 {(["all", "gl", "ul"] as const).map((l) => (
                   <button
                     key={l}
@@ -197,7 +200,18 @@ export default function Recommendations() {
             )}
           </div>
 
-          <p className="border-b border-ink-800 px-8 py-3 text-sm leading-relaxed text-ink-300">
+          <button
+            onClick={() => setShowHelp((x) => !x)}
+            aria-expanded={showHelp}
+            className="w-full border-b border-ink-800 px-4 py-2 text-left text-xs font-semibold text-ink-400 sm:hidden"
+          >
+            {showHelp ? "Hide how this works" : "How this works"}
+          </button>
+          <p
+            className={`border-b border-ink-800 px-4 py-3 text-sm leading-relaxed text-ink-300 sm:block sm:px-8 ${
+              showHelp ? "" : "hidden"
+            }`}
+          >
             {tab === "transfer" ? (
               <>
                 Shinboku only suggests a transfer when you have a copy of the same species with better IVs and nothing
@@ -235,7 +249,7 @@ export default function Recommendations() {
 
           <div className="relative">
             <div
-              className={`flex h-12 items-center gap-2 border-b px-8 text-sm ${
+              className={`no-scrollbar flex h-12 items-center gap-2 overflow-x-auto border-b px-4 text-sm whitespace-nowrap sm:px-8 [&>*]:shrink-0 ${
                 selected.size ? "border-glow-500/30 bg-glow-500/[0.07]" : "border-ink-800"
               }`}
             >
@@ -304,9 +318,9 @@ export default function Recommendations() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
             {list.length === 0 ? (
-              <p className="px-8 py-8 text-sm text-ink-400">
+              <p className="px-4 sm:px-8 py-8 text-sm text-ink-400">
                 {tab === "transfer"
                   ? "Nothing to transfer right now. Every Pokémon is either your best of its species or has a reason to stay."
                   : tab === "evolve"
@@ -379,12 +393,12 @@ function TransferTable({
     <table className="w-full table-fixed text-sm">
       <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
         <tr className="border-b border-ink-800 text-left">
-          <th className="w-12" />
-          <th className="w-14" />
-          <th className="w-24 px-3 py-2 text-right font-semibold">CP</th>
-          <th className="w-36 px-3 py-2 font-semibold">IVs</th>
-          <th className="px-3 py-2 font-semibold">Why it can go</th>
-          <th className="w-28" />
+          <th className="w-10 sm:w-12" />
+          <th className="w-11 sm:w-14" />
+          <th className="w-16 px-2 py-2 text-right font-semibold sm:w-24 sm:px-3">CP</th>
+          <th className="px-2 py-2 font-semibold sm:px-3 md:w-36">IVs</th>
+          <th className="hidden px-3 py-2 font-semibold md:table-cell">Why it can go</th>
+          <th className="w-20 sm:w-28" />
         </tr>
       </thead>
       {groups.map(({ keeper, items }) => {
@@ -393,7 +407,7 @@ function TransferTable({
         return (
           <tbody key={keeper.id}>
             <tr className="border-b border-ink-800 bg-ink-900/70">
-              <td className="pl-8">
+              <td className="pl-3 sm:pl-8">
                 <input
                   type="checkbox"
                   checked={all}
@@ -405,30 +419,33 @@ function TransferTable({
               <td className="px-1 py-1">
                 <PokemonImage species={keeper.sp} style="pixel" size={40} shiny={keeper.shiny} />
               </td>
-              <td colSpan={4} className="px-3 py-2">
+              {/* Spans only columns that exist at every screen size; a span past the last
+                  visible column would add phantom columns on phones. */}
+              <td colSpan={3} className="px-2 py-2 sm:px-3">
                 <span className="font-display text-base font-bold">{keeper.sp.name}</span>
-                <span className="ml-3 text-ink-300">
+                <span className="block text-ink-300 sm:ml-3 sm:inline">
                   Keeping your {keeper.cp.toLocaleString()} CP {keeper.sp.name} with {keeper.ivPct}% IVs ({keeper.iv!.join("/")})
                 </span>
-                <span className="ml-3 rounded-full bg-ink-800 px-2 py-0.5 text-xs text-ink-300">
+                <span className="mt-1 inline-block rounded-full bg-ink-800 px-2 py-0.5 text-xs text-ink-300 sm:mt-0 sm:ml-3">
                   {items.length} to transfer
                 </span>
               </td>
             </tr>
             {items.map((a) => (
               <SelectableRow key={a.row.id} a={a} selected={selected} onToggle={onToggle} sprite={false}>
-                <td className="px-3 text-right font-display font-semibold tabular-nums">
+                <td className="px-2 text-right font-display font-semibold tabular-nums sm:px-3">
                   {a.row.cp.toLocaleString()}
                 </td>
-                <td className="px-3 tabular-nums">
+                <td className="px-2 py-2 tabular-nums sm:px-3">
                   {a.row.ivPct}% <span className="text-xs text-ink-400">{a.row.iv!.join("/")}</span>
+                  {a.leagueNote && <span className="block text-xs text-ink-400 md:hidden">{a.leagueNote}</span>}
                 </td>
-                <td className="px-3 py-2 leading-snug text-ink-300">
+                <td className="hidden px-3 py-2 leading-snug text-ink-300 md:table-cell">
                   {a.dominated ? "Your keeper's IVs are equal or better in every stat." : "Your keeper has better IVs overall."}
                   {a.leagueNote && <span className="text-ink-400"> {a.leagueNote}.</span>}
                   {a.row.nickname && <span className="text-ink-400"> “{a.row.nickname}”</span>}
                 </td>
-                <td className="px-3 text-right">
+                <td className="px-2 text-right sm:px-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -464,12 +481,12 @@ function PvpTable({
     <table className="w-full table-fixed text-sm">
       <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
         <tr className="border-b border-ink-800 text-left">
-          <th className="w-12" />
-          <th className="w-14" />
-          <th className="w-52 px-3 py-2 font-semibold">Pokémon</th>
-          <th className="w-20 px-3 py-2 text-right font-semibold">CP</th>
-          <th className="w-24 px-3 py-2 font-semibold">IVs</th>
-          <th className="px-3 py-2 font-semibold">League value</th>
+          <th className="w-10 sm:w-12" />
+          <th className="w-11 sm:w-14" />
+          <th className="w-28 px-2 py-2 font-semibold sm:w-52 sm:px-3">Pokémon</th>
+          <th className="hidden w-20 px-3 py-2 text-right font-semibold md:table-cell">CP</th>
+          <th className="hidden w-24 px-3 py-2 font-semibold md:table-cell">IVs</th>
+          <th className="px-2 py-2 font-semibold sm:px-3">League value</th>
         </tr>
       </thead>
       <tbody>
@@ -477,8 +494,11 @@ function PvpTable({
           const picks = a.pvp.filter((p) => p.rank <= GOOD_IV_RANK && (league === "all" || p.league === league));
           return (
             <SelectableRow key={a.row.id} a={a} selected={selected} onToggle={onToggle}>
-              <td className="px-3">
+              <td className="px-2 sm:px-3">
                 <span className="font-semibold">{a.row.sp.name}</span>
+                <span className="block text-xs text-ink-400 tabular-nums md:hidden">
+                  {a.row.cp.toLocaleString()} CP · {a.row.iv!.join("/")}
+                </span>
                 {a.row.variant === "shadow" && (
                   <span className="ml-1.5 rounded bg-violet-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-violet-200">
                     Shadow
@@ -486,20 +506,25 @@ function PvpTable({
                 )}
                 {a.row.tags?.includes("PvP") && <span className="ml-1.5 text-xs text-ink-400">#PvP</span>}
               </td>
-              <td className="px-3 text-right font-display font-semibold tabular-nums">{a.row.cp.toLocaleString()}</td>
-              <td className="px-3 text-xs text-ink-300 tabular-nums">{a.row.iv!.join(" / ")}</td>
-              <td className="space-y-1 px-3 py-2">
+              <td className="hidden px-3 text-right font-display font-semibold tabular-nums md:table-cell">
+                {a.row.cp.toLocaleString()}
+              </td>
+              <td className="hidden px-3 text-xs text-ink-300 tabular-nums md:table-cell">{a.row.iv!.join(" / ")}</td>
+              <td className="space-y-2 px-2 py-2 sm:space-y-1 sm:px-3">
                 {picks.map((p) => (
                   <div
                     key={`${p.league}-${p.target.id}`}
-                    className="grid grid-cols-[96px_52px_52px_1fr] items-baseline gap-x-3"
+                    className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 sm:grid-cols-[96px_52px_52px_1fr] sm:gap-x-3"
                   >
                     <span className={`text-xs font-semibold ${p.league === "gl" ? "text-sky-300" : "text-amber-200"}`}>
                       {LEAGUES[p.league].name}
                     </span>
-                    <span className="font-display font-bold text-glow-300 tabular-nums">#{p.rank}</span>
-                    <span className="text-xs text-ink-400 tabular-nums">{p.pct}%</span>
-                    <span className="flex min-w-0 flex-col">
+                    <span className="font-display font-bold text-glow-300 tabular-nums">
+                      #{p.rank}
+                      <span className="ml-2 font-sans text-xs font-normal text-ink-400 sm:hidden">{p.pct}%</span>
+                    </span>
+                    <span className="hidden text-xs text-ink-400 tabular-nums sm:inline">{p.pct}%</span>
+                    <span className="col-span-2 flex min-w-0 flex-col sm:col-span-1">
                       <span className="text-ink-200">
                         {p.target.id !== a.row.sp.id && (
                           <>
@@ -549,7 +574,7 @@ function SelectableRow({
       }}
       className={`cursor-default border-b border-ink-850 ${isSel ? "bg-glow-500/12" : "hover:bg-ink-900"}`}
     >
-      <td className="pl-8">
+      <td className="pl-3 sm:pl-8">
         <input
           ref={box}
           type="checkbox"
@@ -647,12 +672,12 @@ function EvolveTable({
     <table className="w-full table-fixed text-sm">
       <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
         <tr className="border-b border-ink-800 text-left">
-          <th className="w-12" />
-          <th className="w-14" />
-          <th className="w-52 px-3 py-2 font-semibold">Pokémon</th>
-          <th className="w-56 px-3 py-2 font-semibold">Evolve to</th>
-          <th className="w-64 px-3 py-2 font-semibold">Cost</th>
-          <th className="px-3 py-2 font-semibold">Why</th>
+          <th className="w-10 sm:w-12" />
+          <th className="w-11 sm:w-14" />
+          <th className="px-2 py-2 font-semibold sm:px-3 md:w-52">Pokémon</th>
+          <th className="hidden w-56 px-3 py-2 font-semibold md:table-cell">Evolve to</th>
+          <th className="hidden w-64 px-3 py-2 font-semibold md:table-cell">Cost</th>
+          <th className="hidden px-3 py-2 font-semibold md:table-cell">Why</th>
         </tr>
       </thead>
       <tbody>
@@ -660,14 +685,27 @@ function EvolveTable({
           const reqs = requirements(e.path);
           return (
             <SelectableRow key={`${e.row.id}>${e.target.id}`} a={e} selected={selected} onToggle={onToggle}>
-              <td className="px-3">
+              <td className="px-2 py-2 sm:px-3">
                 <span className="font-semibold">{e.row.sp.name}</span>
                 {e.row.variant === "shadow" && <ShadowBadge />}
                 <span className="block text-xs text-ink-400 tabular-nums">
                   {e.row.cp.toLocaleString()} CP{e.row.iv ? ` · ${e.row.iv.join("/")}` : " · not appraised"}
                 </span>
+                <span className="mt-1.5 block md:hidden">
+                  → <span className="font-semibold">{e.target.name}</span>
+                  <span className="ml-2 text-xs text-ink-400">
+                    {e.candy} candy{reqs.length ? ` · ${reqs.join(" · ")}` : ""}
+                  </span>
+                </span>
+                <span className="mt-1 block space-y-0.5 text-xs md:hidden">
+                  {e.reasons.map((r, i) => (
+                    <span key={i} className="block">
+                      {reasonText(r, e)}
+                    </span>
+                  ))}
+                </span>
               </td>
-              <td className="px-3">
+              <td className="hidden px-3 md:table-cell">
                 <span className="flex items-center gap-1">
                   <PokemonImage species={e.target} style="pixel" size={36} shiny={e.row.shiny} />
                   <span className="min-w-0">
@@ -680,7 +718,7 @@ function EvolveTable({
                   </span>
                 </span>
               </td>
-              <td className="px-3 py-2 text-xs leading-snug text-ink-300">
+              <td className="hidden px-3 py-2 text-xs leading-snug text-ink-300 md:table-cell">
                 <span className="font-display text-sm font-semibold text-ink-100 tabular-nums">{e.candy}</span> candy
                 {reqs.map((r) => (
                   <span key={r} className="block text-ink-400">
@@ -688,7 +726,7 @@ function EvolveTable({
                   </span>
                 ))}
               </td>
-              <td className="space-y-0.5 px-3 py-2">
+              <td className="hidden space-y-0.5 px-3 py-2 md:table-cell">
                 {e.reasons.map((r, i) => (
                   <div key={i}>{reasonText(r, e)}</div>
                 ))}
@@ -716,12 +754,12 @@ function PowerTable({
     <table className="w-full table-fixed text-sm">
       <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
         <tr className="border-b border-ink-800 text-left">
-          <th className="w-12" />
-          <th className="w-14" />
-          <th className="w-52 px-3 py-2 font-semibold">Pokémon</th>
-          <th className="px-3 py-2 font-semibold">Moves</th>
-          <th className="w-36 px-3 py-2 font-semibold">At level {RAID_LEVEL}</th>
-          <th className="w-72 px-3 py-2 font-semibold">Cost to level {RAID_LEVEL}</th>
+          <th className="w-10 sm:w-12" />
+          <th className="w-11 sm:w-14" />
+          <th className="px-2 py-2 font-semibold sm:px-3 md:w-52">Pokémon</th>
+          <th className="hidden px-3 py-2 font-semibold lg:table-cell">Moves</th>
+          <th className="w-20 px-2 py-2 font-semibold sm:w-36 sm:px-3">At level {RAID_LEVEL}</th>
+          <th className="hidden w-72 px-3 py-2 font-semibold md:table-cell">Cost to level {RAID_LEVEL}</th>
         </tr>
       </thead>
       {groups.map((g) => {
@@ -730,7 +768,7 @@ function PowerTable({
           <tbody key={g.type}>
             <tr className="border-b border-ink-800 bg-ink-900/70">
               <td />
-              <td colSpan={5} className="px-1 py-2">
+              <td colSpan={3} className="px-1 py-2">
                 <TypeBadge type={g.type} size="md" />
                 <span className="ml-3 text-xs text-ink-400">
                   Best in the game: {best.shadow ? "Shadow " : ""}
@@ -740,24 +778,31 @@ function PowerTable({
             </tr>
             {g.picks.map((p) => (
               <SelectableRow key={`${g.type}|${p.row.id}`} a={p} selected={selected} onToggle={onToggle}>
-                <td className="px-3">
+                <td className="px-2 py-2 sm:px-3">
                   <span className="font-semibold">{p.row.nickname ?? p.row.sp.name}</span>
                   {p.row.variant === "shadow" && <ShadowBadge />}
                   <span className="block text-xs text-ink-400 tabular-nums">
                     {p.row.cp.toLocaleString()} CP · level {p.level}
                     {p.row.iv ? ` · ${p.row.iv.join("/")}` : " · not appraised"}
                   </span>
+                  <span className="block text-xs text-ink-300 lg:hidden">
+                    {data.moves[p.fast]?.name ?? p.fast} · {data.moves[p.charged]?.name ?? p.charged}
+                    {p.assumedMoves && <span className="text-ink-400"> (assumed)</span>}
+                  </span>
+                  <span className="block text-xs text-ink-400 md:hidden">
+                    {p.level >= RAID_LEVEL ? "Already level 40" : describeCost(p.cost)}
+                  </span>
                 </td>
-                <td className="px-3 text-ink-300">
+                <td className="hidden px-3 text-ink-300 lg:table-cell">
                   {data.moves[p.fast]?.name ?? p.fast} <span className="text-ink-600">·</span>{" "}
                   {data.moves[p.charged]?.name ?? p.charged}
                   {p.assumedMoves && <span className="ml-1.5 text-xs text-ink-400">(assumed)</span>}
                 </td>
-                <td className="px-3">
+                <td className="px-2 sm:px-3">
                   <span className="font-display font-bold text-glow-300 tabular-nums">{p.pct}%</span>
-                  <span className="ml-1.5 text-xs text-ink-400">of the best</span>
+                  <span className="ml-1.5 hidden text-xs text-ink-400 sm:inline">of the best</span>
                 </td>
-                <td className="px-3 py-2 text-xs text-ink-300">
+                <td className="hidden px-3 py-2 text-xs text-ink-300 md:table-cell">
                   {p.level >= RAID_LEVEL ? <span className="text-ink-400">Already there</span> : describeCost(p.cost)}
                   {p.row.lucky && p.level < RAID_LEVEL && <span className="block text-ink-400">Lucky: half stardust</span>}
                 </td>
