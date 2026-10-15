@@ -2,7 +2,8 @@
 
 ## Pokémon GO game data
 
-`public/data/gamedata.json` and the CP multiplier table in `src/lib/go/cpm.ts` are derived from
+`public/data/gamedata.json` (game data and league rankings) and the CP multiplier table in
+`src/lib/go/cpm.ts` are derived from
 [PvPoke](https://github.com/pvpoke/pvpoke), used under the MIT License:
 
 ```

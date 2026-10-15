@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// Builds public/data/gamedata.json from PvPoke's open Pokémon GO game data (MIT licensed),
-// and matches each species to its image ID in PokeAPI's sprite collection.
+// Builds public/data/gamedata.json from PvPoke's open Pokémon GO game data and league
+// rankings (MIT licensed), and matches each species to its image ID in PokeAPI's sprite
+// collection.
 //
-//   node scripts/build-gamedata.mjs                        download the latest data
-//   node scripts/build-gamedata.mjs gm.json pokemon.csv    use local copies instead
+//   node scripts/build-gamedata.mjs                  download the latest data
+//   node scripts/build-gamedata.mjs --from DIR       use local copies in DIR instead
+//                                                    (gamemaster.json, pokemon.csv,
+//                                                    rankings-1500.json, rankings-2500.json)
 //
 // The output is committed to the repo so the site never depends on PvPoke being up.
 // A scheduled GitHub Action reruns this weekly and commits any changes.
@@ -12,6 +15,10 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 
 const SOURCE_URL = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster.json";
 const POKEAPI_CSV_URL = "https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon.csv";
+const RANKINGS_URL = (cap) =>
+  `https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/rankings/all/overall/rankings-${cap}.json`;
+// Great League and Ultra League. Master League has no CP cap, so IV rank there is just IV %.
+const LEAGUES = { gl: 1500, ul: 2500 };
 const OUT = new URL("../public/data/gamedata.json", import.meta.url);
 
 const KEEP_TAGS = new Set([
@@ -29,8 +36,11 @@ const KEEP_TAGS = new Set([
 
 const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-async function loadText(localPath, url, label) {
-  if (localPath) return readFile(localPath, "utf8");
+const fromIdx = process.argv.indexOf("--from");
+const LOCAL_DIR = fromIdx !== -1 ? process.argv[fromIdx + 1] : null;
+
+async function loadText(localName, url, label) {
+  if (LOCAL_DIR) return readFile(`${LOCAL_DIR}/${localName}`, "utf8");
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Couldn't download ${label}: HTTP ${res.status}`);
   return res.text();
@@ -84,7 +94,23 @@ function spriteMatcher(csv) {
   };
 }
 
-function convert(gm, spriteId) {
+/**
+ * League rankings: each species' position in PvPoke's overall ranking for a league
+ * (1 = best). Shadow forms are ranked separately, e.g. "machamp_shadow".
+ */
+function leagueRanks(rankingsByLeague) {
+  const out = new Map();
+  for (const [league, list] of Object.entries(rankingsByLeague)) {
+    list.forEach((entry, i) => {
+      const r = out.get(entry.speciesId) ?? {};
+      r[league] = i + 1;
+      out.set(entry.speciesId, r);
+    });
+  }
+  return out;
+}
+
+function convert(gm, spriteId, ranks) {
   const shadowEligible = new Set();
   for (const p of gm.pokemon) {
     if (p.tags?.includes("shadow")) shadowEligible.add(p.speciesId.replace(/_shadow$/, ""));
@@ -123,6 +149,10 @@ function convert(gm, spriteId) {
     if (p.released === false) entry.unreleased = true;
     if (p.buddyDistance) entry.buddyKm = p.buddyDistance;
     if (p.thirdMoveCost) entry.thirdMoveDust = p.thirdMoveCost;
+    const meta = ranks.get(p.speciesId);
+    if (meta) entry.meta = meta;
+    const metaShadow = ranks.get(`${p.speciesId}_shadow`);
+    if (metaShadow && entry.shadow) entry.metaShadow = metaShadow;
     const kept = tags.filter((t) => KEEP_TAGS.has(t));
     if (kept.length) entry.tags = kept;
     species.push(entry);
@@ -143,18 +173,20 @@ function convert(gm, spriteId) {
   }
 
   return {
-    source: "PvPoke game master (https://github.com/pvpoke/pvpoke), MIT License. Image IDs: PokeAPI.",
+    source: "PvPoke game master and rankings (https://github.com/pvpoke/pvpoke), MIT License. Image IDs: PokeAPI.",
     sourceUpdated: gm.timestamp ?? null,
     species,
     moves,
   };
 }
 
-const [gmText, csvText] = await Promise.all([
-  loadText(process.argv[2], SOURCE_URL, "PvPoke data"),
-  loadText(process.argv[3], POKEAPI_CSV_URL, "PokeAPI form list"),
+const [gmText, csvText, ...rankTexts] = await Promise.all([
+  loadText("gamemaster.json", SOURCE_URL, "PvPoke data"),
+  loadText("pokemon.csv", POKEAPI_CSV_URL, "PokeAPI form list"),
+  ...Object.values(LEAGUES).map((cap) => loadText(`rankings-${cap}.json`, RANKINGS_URL(cap), `PvPoke ${cap} rankings`)),
 ]);
-const data = convert(JSON.parse(gmText), spriteMatcher(csvText));
+const rankings = Object.fromEntries(Object.keys(LEAGUES).map((league, i) => [league, JSON.parse(rankTexts[i])]));
+const data = convert(JSON.parse(gmText), spriteMatcher(csvText), leagueRanks(rankings));
 
 // Leave the file untouched when nothing but the timestamp changed, so the weekly job
 // doesn't create empty commits.

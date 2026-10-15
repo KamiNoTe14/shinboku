@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { PokemonImage } from "../../components/PokemonImage";
-import type { BagPokemon } from "../../lib/bag";
-import type { GameData, Species } from "../../lib/go/gamedata";
+import type { GameData } from "../../lib/go/gamedata";
+import type { Row } from "../../lib/bagRows";
 import { appraisalStars } from "../../lib/go/stats";
 import { Stars } from "./EntryRow";
 
-export type Row = BagPokemon & { sp: Species; ivPct: number | null };
+export type { Row };
 
 export type SortKey = "added" | "name" | "cp" | "iv" | "level" | "caught";
 

@@ -13,10 +13,13 @@ import {
   type PokemonInput,
 } from "../lib/bag";
 import { useGameData } from "../lib/go/gamedata";
-import { ivPercent } from "../lib/go/stats";
+import { toRows, toSearchable } from "../lib/bagRows";
 import { buildSearches, type SearchResult } from "../lib/go/searchString";
 import { EntryRow } from "./bag/EntryRow";
 import { BagTable, type Row, type SortKey } from "./bag/BagTable";
+import { ImportDialog } from "./bag/ImportDialog";
+import { SearchStringPanel } from "../components/SearchStringPanel";
+import { bagToCsv } from "../lib/bagCsv";
 
 type Filter = "shiny" | "lucky" | "shadow" | "purified" | "favorite" | "hundo" | "unappraised";
 
@@ -46,15 +49,9 @@ export default function Bag() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
-  const allRows = useMemo<Row[]>(() => {
-    if (!data) return [];
-    return bag.pokemon.flatMap((p) => {
-      const sp = data.byId.get(p.species);
-      if (!sp) return [];
-      return [{ ...p, sp, ivPct: p.iv ? ivPercent({ atk: p.iv[0], def: p.iv[1], sta: p.iv[2] }) : null }];
-    });
-  }, [bag.pokemon, data]);
+  const allRows = useMemo<Row[]>(() => (data ? toRows(bag.pokemon, data) : []), [bag.pokemon, data]);
 
   const allTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -153,7 +150,6 @@ export default function Bag() {
 
   const openSearches = async () => {
     if (!selectedRows.length) return;
-    const toSearchable = (r: Row) => ({ id: r.id, dex: r.sp.dex, cp: r.cp, hp: r.hp, shiny: r.shiny, lucky: r.lucky, variant: r.variant });
     const results = buildSearches(selectedRows.map(toSearchable), allRows.map(toSearchable));
     setSearches(results);
     if (results.length === 1) await copy(results[0].query);
@@ -166,6 +162,17 @@ export default function Bag() {
     } catch {
       setNotice("Couldn't copy automatically. Select the text and copy it.");
     }
+  };
+
+  const exportBag = () => {
+    const blob = new Blob([bagToCsv(allRows)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `shinboku-bag-${new Date().toLocaleDateString("en-CA")}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice(`Downloaded a backup of ${allRows.length.toLocaleString()} Pokémon.`);
   };
 
   const doDelete = async () => {
@@ -232,15 +239,44 @@ export default function Bag() {
             : `${allRows.length.toLocaleString()} Pokémon logged${rows.length !== allRows.length ? `, ${rows.length.toLocaleString()} shown` : ""}`
         }
         actions={
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, nickname or tag"
-            className="w-72 rounded-lg border border-ink-700 bg-ink-900 px-3 py-2 text-sm placeholder:text-ink-400 focus:border-glow-500 focus:outline-none"
-            aria-label="Search your bag"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, nickname or tag"
+              className="w-72 rounded-lg border border-ink-700 bg-ink-900 px-3 py-2 text-sm placeholder:text-ink-400 focus:border-glow-500 focus:outline-none"
+              aria-label="Search your bag"
+            />
+            <button
+              onClick={() => setImporting(true)}
+              className="rounded-lg border border-ink-700 px-3 py-2 text-sm font-semibold hover:bg-ink-800"
+            >
+              Import
+            </button>
+            <button
+              onClick={exportBag}
+              disabled={allRows.length === 0}
+              title="Download your whole bag as a CSV file you can open in Excel or Google Sheets"
+              className="rounded-lg border border-ink-700 px-3 py-2 text-sm font-semibold hover:bg-ink-800 disabled:opacity-40"
+            >
+              Export
+            </button>
+          </div>
         }
       />
+
+      {importing && user && (
+        <ImportDialog
+          uid={user.uid}
+          data={data}
+          existingIds={new Set(allRows.map((r) => r.id))}
+          onClose={() => setImporting(false)}
+          onDone={(msg) => {
+            setImporting(false);
+            setNotice(msg);
+          }}
+        />
+      )}
 
       <EntryRow data={data} editing={editing} onSave={save} onCancelEdit={() => setEditing(null)} />
 
@@ -332,36 +368,7 @@ export default function Bag() {
           )}
         </div>
 
-        {searches && (
-          <div className="absolute inset-x-8 top-full z-20 mt-2 rounded-xl border border-ink-700 bg-ink-900 p-4 text-sm shadow-2xl shadow-black/50">
-            <div className="flex items-start justify-between gap-4">
-              <p className="text-ink-300">
-                {searches.length === 1
-                  ? "Paste this into the search bar on Pokémon GO's Pokémon screen to pull up your selection:"
-                  : `Your selection is split into ${searches.length} searches to keep each one short. Copy them one at a time:`}
-              </p>
-              <button onClick={() => setSearches(null)} className="text-ink-400 hover:text-ink-100" aria-label="Close">
-                Close
-              </button>
-            </div>
-            <ul className="mt-3 space-y-1.5">
-              {searches.map((sr, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <code className="min-w-0 flex-1 truncate rounded-md border border-ink-700 bg-ink-950 px-2.5 py-1.5 text-glow-300">
-                    {sr.query}
-                  </code>
-                  <span className="w-60 shrink-0 text-xs text-ink-400">
-                    Finds {sr.count} selected
-                    {sr.extras > 0
-                      ? `, plus ${sr.extras} other${sr.extras === 1 ? "" : "s"} with the same species and CP`
-                      : ""}
-                  </span>
-                  <ActionButton onClick={() => void copy(sr.query)}>Copy</ActionButton>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {searches && <SearchStringPanel results={searches} onClose={() => setSearches(null)} onCopy={(q) => void copy(q)} />}
       </div>
 
       {!bag.loading && allRows.length === 0 && !bag.error ? (
@@ -371,6 +378,13 @@ export default function Bag() {
             Add your first Pokémon in the row above. Start typing a species, press <kbd>Tab</kbd> to move through
             CP, HP and the appraisal, then <kbd>Enter</kbd> to add it. The species stays selected, so the next
             one of the same kind only needs new numbers.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-ink-300">
+            Have a Shinboku backup or a spreadsheet of your Pokémon?{" "}
+            <button onClick={() => setImporting(true)} className="text-glow-400 hover:text-glow-300">
+              Import it
+            </button>
+            .
           </p>
           <p className="mt-3 text-sm leading-relaxed text-ink-300">
             Tip: in Pokémon GO, searching <code className="text-glow-300">age0</code> shows today's catches, which

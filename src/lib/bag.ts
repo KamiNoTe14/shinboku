@@ -111,6 +111,38 @@ export async function updatePokemon(uid: string, existing: BagPokemon, input: Po
   await writeFields(uid, [{ id: existing.id, fields: { "": { ...clean(input), added: existing.added } } }]);
 }
 
+export type ImportMode = "merge" | "replace";
+
+/**
+ * Saves an imported backup in at most 8 writes, however big it is.
+ * merge: rows whose ID is already in the bag update that Pokémon; the rest are added.
+ * replace: the bag becomes exactly the imported rows.
+ */
+export async function importPokemon(
+  uid: string,
+  items: { id?: string; added?: number; input: PokemonInput }[],
+  mode: ImportMode,
+): Promise<number> {
+  const now = Date.now();
+  const records = items.map((it, i) => ({
+    id: it.id ?? newId(),
+    value: { ...clean(it.input), added: it.added ?? now + i },
+  }));
+
+  if (mode === "merge") {
+    await writeFields(uid, records.map((r) => ({ id: r.id, fields: { "": r.value } })));
+    return records.length;
+  }
+
+  const bundles: Record<string, Record<string, unknown>> = {};
+  for (let c = 0; c < BAG_CHUNKS; c++) bundles[String(c)] = {};
+  for (const r of records) bundles[chunkOf(r.id)][r.id] = r.value;
+  const batch = writeBatch(db);
+  for (const [c, p] of Object.entries(bundles)) batch.set(chunkRef(uid, c), { p });
+  await batch.commit();
+  return records.length;
+}
+
 export async function deletePokemon(uid: string, ids: string[]) {
   await writeFields(uid, ids.map((id) => ({ id, fields: { "": deleteField() } })));
 }

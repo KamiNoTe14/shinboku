@@ -29,6 +29,10 @@ export type Species = {
   buddyKm?: number;
   thirdMoveDust?: number;
   tags?: string[];
+  /** Position in PvPoke's overall ranking per league (1 = best). Missing = unranked. */
+  meta?: { gl?: number; ul?: number };
+  /** Same, for the Shadow form. */
+  metaShadow?: { gl?: number; ul?: number };
 };
 
 export type Move = {

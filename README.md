@@ -23,8 +23,11 @@ Early development. What's in place:
 - A searchable Pokédex with GO stats, max CPs, evolution families, moves and images
 - The bag: keyboard-first entry with live CP/IV checking, a virtualized table for thousands of
   Pokémon, shift/ctrl selection, tags, favorites, and Pokémon GO search strings for any selection
+- Bag backups: CSV export, and import with validation (add/update or replace)
+- Recommendations: transfer suggestions with reasons, and Great/Ultra League IV ranks for each
+  Pokémon and its evolutions, limited to species that matter in each league
 
-Next up: recommendations (transfer, power up, evolve, raid teams).
+Next up: evolve suggestions, then raid teams and power-up priorities.
 
 ## Tech stack
 
@@ -64,7 +67,7 @@ out of the box.
 | `npm run dev`         | Start the dev server with live reload                |
 | `npm run build`       | Type-check and build the site into `dist/`           |
 | `npm run preview`     | Serve the built site locally                         |
-| `npm test`            | Run the unit tests (stat math, entry checks, search strings) |
+| `npm test`            | Run the unit tests (stat math, PvP ranks, recommendations, CSV backups) |
 | `npm run test:rules`  | Test the Firestore security rules (needs Java)       |
 | `node scripts/build-gamedata.mjs` | Refresh the game data from PvPoke        |
 | `npm run deploy:rules`| Publish `firestore.rules` to the live project        |
@@ -76,6 +79,8 @@ website's code is public, and that's fine: editing it can't get around the rules
 
 - `users/{uid}` and `users/{uid}/bag/{0-7}`: readable and writable only by that user. The bag is
   bundled into 8 documents so a 2,000-Pokémon bag loads in 8 reads instead of 2,000.
+  `firestore.indexes.json` turns off indexing for the bundles' contents (nothing queries them),
+  which keeps very large bags under Firestore's per-document index limit.
 - `admins/{uid}`: marks an admin; can only be created by hand in the Firebase console
 - Everything else: denied
 
@@ -83,8 +88,8 @@ Game data (Pokédex, moves, type chart) ships with the site as static files, not
 
 ## Game data
 
-Species, base stats, moves and evolution families come from [PvPoke](https://github.com/pvpoke/pvpoke)
-(MIT License). [`scripts/build-gamedata.mjs`](scripts/build-gamedata.mjs) converts it into
+Species, base stats, moves, evolution families and league rankings come from
+[PvPoke](https://github.com/pvpoke/pvpoke) (MIT License). [`scripts/build-gamedata.mjs`](scripts/build-gamedata.mjs) converts it into
 `public/data/gamedata.json`, and the **Refresh game data** workflow reruns it every Monday,
 committing and redeploying only when something changed. Run it by hand from the Actions tab after a
 big game update. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
