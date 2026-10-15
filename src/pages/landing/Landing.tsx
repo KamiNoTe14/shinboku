@@ -76,7 +76,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
             </Link>
           </div>
           <p className="mt-6 text-sm text-ink-400">
-            Early access. Your bag, transfer suggestions and Battle League ranks work today; raid teams are coming next.
+            Early access. Your bag, recommendations, Battle League ranks and raid teams all work today, and more is on the way.
           </p>
         </div>
       </div>

@@ -63,7 +63,8 @@ export function evolutionLine(sp: Species, data: GameData): Species[] {
   return out;
 }
 
-function levelOf(row: Row): number | null {
+/** The Pokémon's level: as entered, or worked out from CP, HP and IVs. */
+export function levelOf(row: Row): number | null {
   if (row.level) return row.level;
   if (!row.iv) return null;
   const iv = { atk: row.iv[0], def: row.iv[1], sta: row.iv[2] };

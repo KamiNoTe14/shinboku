@@ -24,10 +24,14 @@ Early development. What's in place:
 - The bag: keyboard-first entry with live CP/IV checking, a virtualized table for thousands of
   Pokémon, shift/ctrl selection, tags, favorites, and Pokémon GO search strings for any selection
 - Bag backups: CSV export, and import with validation (add/update or replace)
-- Recommendations: transfer suggestions with reasons, and Great/Ultra League IV ranks for each
-  Pokémon and its evolutions, limited to species that matter in each league
+- Recommendations: transfer suggestions with reasons, Great/Ultra League IV ranks for each
+  Pokémon and its evolutions, evolve suggestions (league IVs, top raid attackers, new Pokédex
+  entries, with candy and item costs), and the best raid attackers of each type in your bag with
+  the stardust and candy to reach level 40
+- Raid counters: the best attackers against any boss (with weather, Megas and Shadows), and the
+  best team of six from your own bag with a search string to find them
 
-Next up: evolve suggestions, then raid teams and power-up priorities.
+Next up: ideas include friends, raid planning and community events.
 
 ## Tech stack
 
@@ -67,7 +71,7 @@ out of the box.
 | `npm run dev`         | Start the dev server with live reload                |
 | `npm run build`       | Type-check and build the site into `dist/`           |
 | `npm run preview`     | Serve the built site locally                         |
-| `npm test`            | Run the unit tests (stat math, PvP ranks, recommendations, CSV backups) |
+| `npm test`            | Run the unit tests (stat math, PvP ranks, raid math, recommendations, CSV backups) |
 | `npm run test:rules`  | Test the Firestore security rules (needs Java)       |
 | `node scripts/build-gamedata.mjs` | Refresh the game data from PvPoke        |
 | `npm run deploy:rules`| Publish `firestore.rules` to the live project        |
@@ -89,10 +93,20 @@ Game data (Pokédex, moves, type chart) ships with the site as static files, not
 ## Game data
 
 Species, base stats, moves, evolution families and league rankings come from
-[PvPoke](https://github.com/pvpoke/pvpoke) (MIT License). [`scripts/build-gamedata.mjs`](scripts/build-gamedata.mjs) converts it into
+[PvPoke](https://github.com/pvpoke/pvpoke) (MIT License). Raid move stats, the type chart,
+weather, and evolution and power-up costs come from the Pokémon GO game master published by
+[PokeMiners](https://github.com/PokeMiners/game_masters). [`scripts/build-gamedata.mjs`](scripts/build-gamedata.mjs) converts it into
 `public/data/gamedata.json`, and the **Refresh game data** workflow reruns it every Monday,
 committing and redeploying only when something changed. Run it by hand from the Actions tab after a
 big game update. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Raid math
+
+Counters are ranked with the simplified model community calculators use: damage per hit is
+`floor(0.5 × power × attack ÷ defense × bonuses) + 1`, a fast/charged move cycle with energy from
+attacking and from taking damage, and a generic boss dealing `900 ÷ defense` damage per second.
+Attackers are scored by DPS³ × TDO and shown as a percentage of the best, on a fourth-root scale
+so 90% reads as "about 90% as strong". It's for comparing Pokémon, not simulating a battle.
 
 ### Testing the rules
 

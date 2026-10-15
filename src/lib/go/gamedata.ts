@@ -33,12 +33,26 @@ export type Species = {
   meta?: { gl?: number; ul?: number };
   /** Same, for the Shadow form. */
   metaShadow?: { gl?: number; ul?: number };
+  /** Evolution costs keyed by the species it evolves into. */
+  evo?: Record<string, EvolutionCost>;
+};
+
+export type EvolutionCost = {
+  candy: number;
+  candyPurified?: number;
+  item?: string;
+  buddyKm?: number;
+  quest?: boolean;
+  time?: "day" | "night";
+  tradeFree?: boolean;
 };
 
 export type Move = {
   name: string;
   type: PokemonType;
   pvp: { power: number; energyGain?: number; turns?: number; energy?: number };
+  /** Raid and gym stats. Energy is positive for fast moves and negative for charged moves. */
+  pve?: { power: number; energy: number; durationMs: number };
 };
 
 export type GameData = {
@@ -46,6 +60,12 @@ export type GameData = {
   sourceUpdated: string | null;
   species: Species[];
   moves: Record<string, Move>;
+  /** Damage multipliers that differ from 1, by attacking type then defending type. */
+  typeChart: Record<PokemonType, Partial<Record<PokemonType, number>>>;
+  /** Types boosted by each weather condition. */
+  weather: Record<"CLEAR" | "FOG" | "OVERCAST" | "PARTLY_CLOUDY" | "RAINY" | "SNOW" | "WINDY", PokemonType[]>;
+  raid: { stab: number; shadowAtk: number; shadowDef: number; energyPerHpLost: number; weatherBoost: number };
+  upgrade: import("./powerup").UpgradeTable;
   byId: Map<string, Species>;
 };
 

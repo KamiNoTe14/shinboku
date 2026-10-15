@@ -30,6 +30,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Raid, evolution and power-up data
+
+Raid move stats, the type chart, weather boosts, evolution costs and power-up costs are read
+from the Pokémon GO game master as published by
+[PokeMiners](https://github.com/PokeMiners/game_masters). That repository has no license; the
+underlying values are Niantic's game data, used here as facts for this non-commercial fan
+project.
+
 ## Pokémon images
 
 Sprites, 3D renders and official artwork are linked (not hosted) from

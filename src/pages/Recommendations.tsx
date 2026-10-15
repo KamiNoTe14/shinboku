@@ -10,8 +10,25 @@ import { useGameData } from "../lib/go/gamedata";
 import { LEAGUES, type League } from "../lib/go/pvp";
 import { buildSearches, type SearchResult } from "../lib/go/searchString";
 import { GOOD_IV_RANK, INVESTED_LEVEL, KEEP_TAG, META_TOP, recommend, type Assessment } from "../lib/recommend";
+import { describeCost } from "../lib/go/powerup";
+import { TypeBadge } from "../components/TypeBadge";
+import {
+  evolveSuggestions,
+  powerUpPlan,
+  RAID_LEVEL,
+  RAID_TOP,
+  requirements,
+  typeRanking,
+  type EvolveReason,
+  type EvolveSuggestion,
+  type PowerUpGroup,
+} from "../lib/raids";
+import type { GameData } from "../lib/go/gamedata";
 
-type Tab = "transfer" | "pvp";
+type Tab = "transfer" | "pvp" | "evolve" | "power";
+
+/** Anything listed with a checkbox. The same Pokémon can appear more than once (e.g. under two types). */
+type Item = { row: Row; key: string };
 
 export default function Recommendations() {
   const { user } = useAuth();
@@ -28,15 +45,29 @@ export default function Recommendations() {
   const rows = useMemo(() => (data ? toRows(bag.pokemon, data) : []), [bag.pokemon, data]);
   const recs = useMemo(() => (data ? recommend(rows, data) : null), [rows, data]);
 
-  const list: Assessment[] = useMemo(() => {
+  const evolve = useMemo(() => (data && recs ? evolveSuggestions(recs.all, data) : []), [recs, data]);
+  const power = useMemo(() => (data ? powerUpPlan(rows, data) : []), [rows, data]);
+  const powerCount = useMemo(
+    () => new Set(power.flatMap((g) => g.picks.filter((p) => p.level < RAID_LEVEL).map((p) => p.row.id))).size,
+    [power],
+  );
+
+  const pvpList: Assessment[] = useMemo(() => {
     if (!recs) return [];
-    if (tab === "transfer") return recs.transfer;
     return league === "all"
       ? recs.pvp
       : recs.pvp
           .filter((a) => a.pvp.some((p) => p.league === league && p.rank <= GOOD_IV_RANK))
           .sort((a, b) => bestIn(a, league) - bestIn(b, league));
-  }, [recs, tab, league]);
+  }, [recs, league]);
+
+  const list: Item[] = useMemo(() => {
+    if (!recs) return [];
+    if (tab === "transfer") return recs.transfer.map((a) => ({ row: a.row, key: a.row.id }));
+    if (tab === "evolve") return evolve.map((e) => ({ row: e.row, key: `${e.row.id}>${e.target.id}` }));
+    if (tab === "power") return power.flatMap((g) => g.picks.map((p) => ({ row: p.row, key: `${g.type}|${p.row.id}` })));
+    return pvpList.map((a) => ({ row: a.row, key: a.row.id }));
+  }, [recs, tab, pvpList, evolve, power]);
 
   useEffect(() => {
     setSelected(new Set());
@@ -63,7 +94,7 @@ export default function Recommendations() {
   if (dataError) return <p className="px-8 py-8 text-rose-300">{dataError}. Refresh the page to try again.</p>;
   if (!data || !recs || bag.loading) return <p className="px-8 py-8 text-sm text-ink-400">Working out recommendations…</p>;
 
-  const selectedRows = list.filter((a) => selected.has(a.row.id)).map((a) => a.row);
+  const selectedRows = [...new Map(list.filter((a) => selected.has(a.row.id)).map((a) => [a.row.id, a.row])).values()];
 
   const toggle = (id: string, shift: boolean) => {
     if (shift && anchor) {
@@ -84,7 +115,8 @@ export default function Recommendations() {
     setAnchor(id);
   };
 
-  const allSelected = list.length > 0 && selected.size === list.length;
+  const listIds = new Set(list.map((a) => a.row.id));
+  const allSelected = list.length > 0 && selected.size === listIds.size;
 
   const copySearch = async () => {
     const results = buildSearches(selectedRows.map(toSearchable), rows.map(toSearchable));
@@ -139,6 +171,12 @@ export default function Recommendations() {
             <TabButton on={tab === "pvp"} onClick={() => setTab("pvp")} count={recs.pvp.length}>
               Keep for Battle League
             </TabButton>
+            <TabButton on={tab === "evolve"} onClick={() => setTab("evolve")} count={evolve.length}>
+              Evolve
+            </TabButton>
+            <TabButton on={tab === "power"} onClick={() => setTab("power")} count={powerCount}>
+              Power up for raids
+            </TabButton>
             {tab === "pvp" && (
               <div className="mb-2 ml-auto flex gap-1">
                 {(["all", "gl", "ul"] as const).map((l) => (
@@ -167,6 +205,19 @@ export default function Recommendations() {
                 Pokémon, Elite TM moves, anything powered up past level {INVESTED_LEVEL}, and good league IVs are never
                 suggested.
               </>
+            ) : tab === "evolve" ? (
+              <>
+                Evolutions worth spending candy on: for good league IVs as the evolved Pokémon, because the evolution is
+                one of the top {RAID_TOP} raid attackers of its type, or to fill a new Pokédex entry. Raid and Pokédex
+                suggestions use your best copy of each species. Check your candy in the game first.
+              </>
+            ) : tab === "power" ? (
+              <>
+                Your strongest raid attackers of each type once powered up to level {RAID_LEVEL}, compared with the best
+                attacker of that type in the game (90% means about 90% as strong), and the stardust and candy it takes to
+                get there. Pokémon that can still evolve are in the Evolve tab instead. Pokémon without moves entered are
+                assumed to have their best moves of that type.
+              </>
             ) : (
               <>
                 IV rank compares a Pokémon's IVs with all 4,096 possible spreads for that league, powered up to the best
@@ -174,7 +225,7 @@ export default function Recommendations() {
                 listed, including what your Pokémon can evolve into. Ranks in the top {GOOD_IV_RANK} are shown here.
               </>
             )}
-            {recs.unappraised > 0 && (
+            {recs.unappraised > 0 && (tab === "transfer" || tab === "pvp") && (
               <span className="text-ink-400">
                 {" "}
                 {recs.unappraised.toLocaleString()} Pokémon without an appraisal are left out.
@@ -192,7 +243,7 @@ export default function Recommendations() {
                 <input
                   type="checkbox"
                   checked={allSelected}
-                  onChange={() => setSelected(allSelected ? new Set() : new Set(list.map((a) => a.row.id)))}
+                  onChange={() => setSelected(allSelected ? new Set() : listIds)}
                   className="h-4 w-4 accent-glow-500"
                   aria-label="Select all"
                   disabled={list.length === 0}
@@ -206,7 +257,9 @@ export default function Recommendations() {
                   {notice ??
                     (tab === "transfer"
                       ? "Select Pokémon, copy the search string into Pokémon GO, transfer them there, then remove them here."
-                      : "Tag the ones you plan to use so they're easy to find in your bag.")}
+                      : tab === "evolve"
+                        ? "Select Pokémon and copy the search string to find them in Pokémon GO."
+                        : "Tag the ones you plan to use so they're easy to find in your bag.")}
                 </span>
               ) : (
                 <>
@@ -215,8 +268,12 @@ export default function Recommendations() {
                   </Action>
                   {tab === "transfer" ? (
                     <Action onClick={() => void keep([...selected], KEEP_TAG)}>Keep these</Action>
-                  ) : (
+                  ) : tab === "pvp" ? (
                     <Action onClick={() => void keep([...selected], "PvP")}>Tag #PvP</Action>
+                  ) : tab === "evolve" ? (
+                    <Action onClick={() => void keep([...selected], "Evolve")}>Tag #Evolve</Action>
+                  ) : (
+                    <Action onClick={() => void keep([...selected], "Raid")}>Tag #Raid</Action>
                   )}
                   <span className="min-w-0 flex-1 truncate text-glow-300">{notice}</span>
                   {tab === "transfer" &&
@@ -252,11 +309,15 @@ export default function Recommendations() {
               <p className="px-8 py-8 text-sm text-ink-400">
                 {tab === "transfer"
                   ? "Nothing to transfer right now. Every Pokémon is either your best of its species or has a reason to stay."
-                  : "None of your appraised Pokémon rank in the top 100 for a league where their species is competitive."}
+                  : tab === "evolve"
+                    ? "No evolutions to suggest right now."
+                    : tab === "power"
+                      ? "None of your Pokémon have a charged move that makes them a raid attacker yet."
+                      : "None of your appraised Pokémon rank in the top 100 for a league where their species is competitive."}
               </p>
             ) : tab === "transfer" ? (
               <TransferTable
-                list={list}
+                list={recs.transfer}
                 selected={selected}
                 onToggle={toggle}
                 onToggleMany={(ids, on) =>
@@ -271,8 +332,17 @@ export default function Recommendations() {
                 }
                 onKeep={(id) => void keep([id], KEEP_TAG)}
               />
+            ) : tab === "evolve" ? (
+              <EvolveTable list={evolve} selected={selected} onToggle={toggle} />
+            ) : tab === "power" ? (
+              <PowerTable groups={power} data={data} selected={selected} onToggle={toggle} />
             ) : (
-              <PvpTable list={list} league={league} selected={selected} onToggle={toggle} />
+              <PvpTable
+                list={pvpList}
+                league={league}
+                selected={selected}
+                onToggle={toggle}
+              />
             )}
           </div>
         </>
@@ -462,7 +532,7 @@ function SelectableRow({
   children,
   sprite = true,
 }: {
-  a: Assessment;
+  a: { row: Row };
   selected: Set<string>;
   onToggle: (id: string, shift: boolean) => void;
   children: ReactNode;
@@ -538,5 +608,170 @@ function Action({
     >
       {children}
     </button>
+  );
+}
+
+function reasonText(r: EvolveReason, s: EvolveSuggestion): ReactNode {
+  if (r.kind === "league") {
+    return (
+      <>
+        <span className={`font-semibold ${r.pick.league === "gl" ? "text-sky-300" : "text-amber-200"}`}>
+          {LEAGUES[r.pick.league].name} #{r.pick.rank}
+        </span>{" "}
+        as {r.pick.target.name}
+        {r.pick.target.id !== s.target.id && " (evolve again)"}, level {r.pick.level}
+      </>
+    );
+  }
+  if (r.kind === "raid") {
+    return (
+      <>
+        <span className="font-semibold text-glow-300">#{r.rank}</span> <TypeBadge type={r.type} /> raid attacker
+        {s.row.variant === "shadow" ? " among Shadows" : ""}
+      </>
+    );
+  }
+  return <span className="text-ink-300">New Pokédex entry</span>;
+}
+
+function EvolveTable({
+  list,
+  selected,
+  onToggle,
+}: {
+  list: EvolveSuggestion[];
+  selected: Set<string>;
+  onToggle: (id: string, shift: boolean) => void;
+}) {
+  return (
+    <table className="w-full table-fixed text-sm">
+      <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
+        <tr className="border-b border-ink-800 text-left">
+          <th className="w-12" />
+          <th className="w-14" />
+          <th className="w-52 px-3 py-2 font-semibold">Pokémon</th>
+          <th className="w-56 px-3 py-2 font-semibold">Evolve to</th>
+          <th className="w-64 px-3 py-2 font-semibold">Cost</th>
+          <th className="px-3 py-2 font-semibold">Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        {list.map((e) => {
+          const reqs = requirements(e.path);
+          return (
+            <SelectableRow key={`${e.row.id}>${e.target.id}`} a={e} selected={selected} onToggle={onToggle}>
+              <td className="px-3">
+                <span className="font-semibold">{e.row.sp.name}</span>
+                {e.row.variant === "shadow" && <ShadowBadge />}
+                <span className="block text-xs text-ink-400 tabular-nums">
+                  {e.row.cp.toLocaleString()} CP{e.row.iv ? ` · ${e.row.iv.join("/")}` : " · not appraised"}
+                </span>
+              </td>
+              <td className="px-3">
+                <span className="flex items-center gap-1">
+                  <PokemonImage species={e.target} style="pixel" size={36} shiny={e.row.shiny} />
+                  <span className="min-w-0">
+                    <span className="font-semibold">{e.target.name}</span>
+                    {e.path.length > 1 && (
+                      <span className="block truncate text-xs text-ink-400">
+                        via {e.path.slice(0, -1).map((st) => st.to.name).join(", ")}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </td>
+              <td className="px-3 py-2 text-xs leading-snug text-ink-300">
+                <span className="font-display text-sm font-semibold text-ink-100 tabular-nums">{e.candy}</span> candy
+                {reqs.map((r) => (
+                  <span key={r} className="block text-ink-400">
+                    {r}
+                  </span>
+                ))}
+              </td>
+              <td className="space-y-0.5 px-3 py-2">
+                {e.reasons.map((r, i) => (
+                  <div key={i}>{reasonText(r, e)}</div>
+                ))}
+              </td>
+            </SelectableRow>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function PowerTable({
+  groups,
+  data,
+  selected,
+  onToggle,
+}: {
+  groups: PowerUpGroup[];
+  data: GameData;
+  selected: Set<string>;
+  onToggle: (id: string, shift: boolean) => void;
+}) {
+  return (
+    <table className="w-full table-fixed text-sm">
+      <thead className="sticky top-0 z-10 bg-ink-950 text-xs text-ink-400">
+        <tr className="border-b border-ink-800 text-left">
+          <th className="w-12" />
+          <th className="w-14" />
+          <th className="w-52 px-3 py-2 font-semibold">Pokémon</th>
+          <th className="px-3 py-2 font-semibold">Moves</th>
+          <th className="w-36 px-3 py-2 font-semibold">At level {RAID_LEVEL}</th>
+          <th className="w-72 px-3 py-2 font-semibold">Cost to level {RAID_LEVEL}</th>
+        </tr>
+      </thead>
+      {groups.map((g) => {
+        const best = typeRanking(g.type, data)[0];
+        return (
+          <tbody key={g.type}>
+            <tr className="border-b border-ink-800 bg-ink-900/70">
+              <td />
+              <td colSpan={5} className="px-1 py-2">
+                <TypeBadge type={g.type} size="md" />
+                <span className="ml-3 text-xs text-ink-400">
+                  Best in the game: {best.shadow ? "Shadow " : ""}
+                  {best.sp.name}
+                </span>
+              </td>
+            </tr>
+            {g.picks.map((p) => (
+              <SelectableRow key={`${g.type}|${p.row.id}`} a={p} selected={selected} onToggle={onToggle}>
+                <td className="px-3">
+                  <span className="font-semibold">{p.row.nickname ?? p.row.sp.name}</span>
+                  {p.row.variant === "shadow" && <ShadowBadge />}
+                  <span className="block text-xs text-ink-400 tabular-nums">
+                    {p.row.cp.toLocaleString()} CP · level {p.level}
+                    {p.row.iv ? ` · ${p.row.iv.join("/")}` : " · not appraised"}
+                  </span>
+                </td>
+                <td className="px-3 text-ink-300">
+                  {data.moves[p.fast]?.name ?? p.fast} <span className="text-ink-600">·</span>{" "}
+                  {data.moves[p.charged]?.name ?? p.charged}
+                  {p.assumedMoves && <span className="ml-1.5 text-xs text-ink-400">(assumed)</span>}
+                </td>
+                <td className="px-3">
+                  <span className="font-display font-bold text-glow-300 tabular-nums">{p.pct}%</span>
+                  <span className="ml-1.5 text-xs text-ink-400">of the best</span>
+                </td>
+                <td className="px-3 py-2 text-xs text-ink-300">
+                  {p.level >= RAID_LEVEL ? <span className="text-ink-400">Already there</span> : describeCost(p.cost)}
+                  {p.row.lucky && p.level < RAID_LEVEL && <span className="block text-ink-400">Lucky: half stardust</span>}
+                </td>
+              </SelectableRow>
+            ))}
+          </tbody>
+        );
+      })}
+    </table>
+  );
+}
+
+function ShadowBadge() {
+  return (
+    <span className="ml-1.5 rounded bg-violet-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-violet-200">Shadow</span>
   );
 }
