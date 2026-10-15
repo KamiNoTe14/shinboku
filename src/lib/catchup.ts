@@ -74,7 +74,9 @@ export function dexRanges(nums: number[]): string {
 }
 
 /**
- * Pokémon GO search terms that rule out anything worth a second look. Each
+ * Pokémon GO search terms that rule out anything worth a second look.
+ * Legendary, Mythical and Ultra Beast Pokémon need no term of their own: their
+ * dex numbers are never in the search, which keeps each string shorter. Each
  * group is ANDed by the game; "!" means "not".
  */
 export const KEEP_TERMS = [
@@ -82,9 +84,6 @@ export const KEEP_TERMS = [
   "!lucky",
   "!shadow",
   "!purified",
-  "!legendary",
-  "!mythical",
-  "!ultra beasts",
   "!costume",
   "!favorite",
   "!#",
@@ -97,21 +96,31 @@ export const KEEP_TERMS = [
 
 export type CleanupOptions = { maxStars: 0 | 1 | 2 };
 
+export type CleanupPart = { query: string; fromDex: number; toDex: number };
+
 export type Cleanup = {
+  /** Everything in one string. Long; the game may not honor all of it. */
   query: string;
-  /** The same search split into shorter strings, in case the game cuts a long one off. */
-  parts: string[];
+  /** The same search as shorter strings, run one after another. */
+  parts: CleanupPart[];
   junkSpecies: number;
   keptSpecies: number;
 };
 
-/** Length to aim for in each shorter part. */
-const PART_LENGTH = 300;
+/**
+ * Longest string to hand the game. A trainer's test showed shinies coming back
+ * from a ~1,000-character string whose "!shiny" sat 835 characters in, so the
+ * game appears to ignore part of very long searches. Short strings, with the
+ * protective terms first, keep every exclusion in force.
+ */
+export const PART_LENGTH = 260;
 
 /**
- * A search string for low-IV Pokémon of species that don't matter in any league
+ * Search strings for low-IV Pokémon of species that don't matter in any league
  * or raid. Species that matter are left out entirely (by dex number), because
- * the best league IVs are often low-attack 1★ spreads.
+ * the best league IVs are often low-attack 1★ spreads. The exclusions and the
+ * star filter come first and the dex numbers last, so if the game ever cuts a
+ * string short it loses species to search, never a protection.
  */
 export function cleanupSearch(data: GameData, opts: CleanupOptions): Cleanup {
   const important = importantSpecies(data);
@@ -122,21 +131,27 @@ export function cleanupSearch(data: GameData, opts: CleanupOptions): Cleanup {
     allDex.add(sp.dex);
     if (important.has(sp.id) || special(sp)) keepDex.add(sp.dex);
   }
-  const junk = [...allDex].filter((d) => !keepDex.has(d));
+  const junk = [...allDex].filter((d) => !keepDex.has(d)).sort((a, b) => a - b);
   const stars = Array.from({ length: opts.maxStars + 1 }, (_, i) => `${i}*`).join(",");
-  const tail = [stars, ...KEEP_TERMS].join("&");
-  const parts: string[] = [];
+  const head = [...KEEP_TERMS, stars].join("&");
+  const make = (dex: number[]): CleanupPart => ({
+    query: `${head}&${dexRanges(dex)}`,
+    fromDex: dex[0],
+    toDex: dex[dex.length - 1],
+  });
+
+  const parts: CleanupPart[] = [];
   let chunk: number[] = [];
-  for (const d of junk.sort((a, b) => a - b)) {
-    if (chunk.length && dexRanges([...chunk, d]).length + tail.length + 1 > PART_LENGTH) {
-      parts.push(`${dexRanges(chunk)}&${tail}`);
+  for (const d of junk) {
+    if (chunk.length && make([...chunk, d]).query.length > PART_LENGTH) {
+      parts.push(make(chunk));
       chunk = [];
     }
     chunk.push(d);
   }
-  if (chunk.length) parts.push(`${dexRanges(chunk)}&${tail}`);
+  if (chunk.length) parts.push(make(chunk));
   return {
-    query: `${dexRanges(junk)}&${tail}`,
+    query: make(junk).query,
     parts,
     junkSpecies: junk.length,
     keptSpecies: keepDex.size,

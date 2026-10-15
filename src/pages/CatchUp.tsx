@@ -63,8 +63,9 @@ export default function CatchUp() {
 function Cleanup({ data }: { data: GameData }) {
   const [maxStars, setMaxStars] = useState<0 | 1 | 2>(1);
   const [copied, setCopied] = useState<boolean | null>(null);
-  const [copiedPart, setCopiedPart] = useState<number | null>(null);
+  const [copiedPart, setCopiedPart] = useState<Set<number>>(new Set());
   const result = useMemo(() => cleanupSearch(data, { maxStars }), [data, maxStars]);
+  useEffect(() => setCopiedPart(new Set()), [maxStars]);
 
   return (
     <div className="max-w-4xl px-4 sm:px-8 pt-6">
@@ -95,47 +96,54 @@ function Cleanup({ data }: { data: GameData }) {
         </span>
       </div>
 
-      <div className="mt-4 rounded-xl border border-ink-700 bg-ink-900 p-4">
-        <code className="block max-h-40 overflow-y-auto font-mono text-xs leading-relaxed break-all text-ink-200">
-          {result.query}
-        </code>
-        <div className="mt-3 flex items-center gap-3">
-          <button
-            onClick={async () => setCopied(await copyText(result.query))}
-            className="rounded-md bg-linear-to-r from-glow-400 to-ice-400 px-3 py-1.5 text-sm font-bold text-ink-950 hover:brightness-110"
+      <p className="mt-5 text-sm text-ink-300">
+        Run these {result.parts.length} searches one after another. Each one is short enough for the game to read in
+        full, and each covers a different range of Pokédex numbers.
+      </p>
+      <ol className="mt-3 space-y-2">
+        {result.parts.map((part, i) => (
+          <li
+            key={part.query}
+            className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 ${
+              copiedPart.has(i) ? "border-ink-800 bg-ink-900/40" : "border-ink-700 bg-ink-900"
+            }`}
           >
-            Copy search string
-          </button>
-          <span className="text-xs text-ink-400">
-            {copied === true
-              ? "Copied. Paste it into the search bar on Pokémon GO's Pokémon screen."
-              : copied === false
-                ? "Couldn't copy automatically. Select the text and copy it."
-                : `${result.query.length.toLocaleString()} characters`}
-          </span>
-        </div>
-      </div>
+            <span className="font-display text-sm font-bold text-ink-100">Search {i + 1}</span>
+            <span className="text-xs text-ink-400 tabular-nums">
+              #{part.fromDex}–#{part.toDex}
+            </span>
+            <button
+              onClick={async () => {
+                if (await copyText(part.query)) setCopiedPart((c) => new Set(c).add(i));
+              }}
+              className={`ml-auto rounded-md px-3 py-1.5 text-sm font-bold ${
+                copiedPart.has(i)
+                  ? "border border-ink-700 text-ink-300 hover:bg-ink-800"
+                  : "bg-linear-to-r from-glow-400 to-ice-400 text-ink-950 hover:brightness-110"
+              }`}
+            >
+              {copiedPart.has(i) ? "Copied ✓" : "Copy"}
+            </button>
+            <code className="basis-full font-mono text-[11px] leading-relaxed break-all text-ink-400">{part.query}</code>
+          </li>
+        ))}
+      </ol>
 
       <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-ink-400 hover:text-ink-100">
-          Game cutting the string off? Use {result.parts.length} shorter ones instead
-        </summary>
-        <ul className="mt-2 space-y-2">
-          {result.parts.map((part, i) => (
-            <li key={i} className="flex items-start gap-3 rounded-lg border border-ink-800 bg-ink-900/60 p-2">
-              <span className="mt-0.5 text-xs text-ink-400 tabular-nums">
-                {i + 1}/{result.parts.length}
-              </span>
-              <code className="min-w-0 flex-1 font-mono text-xs break-all text-ink-300">{part}</code>
-              <button
-                onClick={async () => setCopiedPart((await copyText(part)) ? i : null)}
-                className="rounded-md border border-ink-700 px-2 py-0.5 text-xs font-semibold hover:bg-ink-800"
-              >
-                {copiedPart === i ? "Copied" : "Copy"}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <summary className="cursor-pointer text-ink-400 hover:text-ink-100">Everything in one long string</summary>
+        <p className="mt-2 text-xs text-amber-200">
+          The game seems to ignore part of very long searches. In one test, shiny Pokémon showed up even though the
+          string excluded them. Use the short searches above unless you've checked this one finds no shinies.
+        </p>
+        <code className="mt-2 block max-h-40 overflow-y-auto rounded-lg border border-ink-800 bg-ink-900 p-3 font-mono text-xs break-all text-ink-300">
+          {result.query}
+        </code>
+        <button
+          onClick={async () => setCopied(await copyText(result.query))}
+          className="mt-2 rounded-md border border-ink-700 px-2.5 py-1 text-xs font-semibold hover:bg-ink-800"
+        >
+          {copied ? "Copied" : "Copy the long string"}
+        </button>
       </details>
 
       <h3 className="mt-6 text-sm font-bold">What it never finds</h3>
@@ -153,12 +161,16 @@ function Cleanup({ data }: { data: GameData }) {
 
       <h3 className="mt-6 text-sm font-bold">How to use it</h3>
       <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-300">
-        <li>Paste the string into the search bar on the Pokémon screen in Pokémon GO.</li>
+        <li>Copy a search and paste it into the search bar on the Pokémon screen in Pokémon GO.</li>
         <li>
           Scroll through the results. Favorite or tag anything you want to keep for your own reasons (a buddy, a
           collection, candy for a Pokémon you're building).
         </li>
-        <li>Search again, then long-press one, choose select all, and transfer.</li>
+        <li>
+          Quick check: no shiny sparkles, lucky backgrounds or Shadow flames should show up. If one does, favorite it
+          before going on.
+        </li>
+        <li>Search again, then long-press one, choose select all, and transfer. Then on to the next search.</li>
       </ol>
       <p className="mt-4 text-xs text-ink-400">
         Already entered some of these in Shinboku? Use{" "}

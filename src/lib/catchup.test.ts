@@ -23,19 +23,26 @@ describe("cleanup search", () => {
   });
 
   it("leaves out species that matter and special Pokémon", () => {
-    const { query } = cleanupSearch(data, { maxStars: 1 });
-    const dex = query.split("&")[0].split(",").flatMap((p) => {
-      const [a, b] = p.split("-").map(Number);
-      return Array.from({ length: (b ?? a) - a + 1 }, (_, i) => a + i);
-    });
+    const { query, parts } = cleanupSearch(data, { maxStars: 1 });
+    const dexOf = (q: string) =>
+      q.split("&").at(-1)!.split(",").flatMap((p) => {
+        const [a, b] = p.split("-").map(Number);
+        return Array.from({ length: (b ?? a) - a + 1 }, (_, k) => a + k);
+      });
+    const dex = dexOf(query);
     expect(dex).toContain(16); // Pidgey
     expect(dex).not.toContain(307); // Meditite
     expect(dex).not.toContain(150); // Mewtwo
-    expect(query).toContain("&0*,1*&!shiny");
+    expect(query.startsWith("!shiny&!lucky")).toBe(true);
+    expect(query).toContain("&0*,1*&");
     expect(query).not.toContain("2*");
-    const { parts } = cleanupSearch(data, { maxStars: 1 });
+    // Short parts cover the same species, each with every protection up front.
     expect(parts.length).toBeGreaterThan(1);
-    expect(parts.every((p) => p.length <= 320 && p.endsWith("!specialbackground"))).toBe(true);
+    expect(parts.flatMap((p) => dexOf(p.query))).toEqual(dex);
+    for (const p of parts) {
+      expect(p.query.length).toBeLessThanOrEqual(260);
+      expect(p.query.startsWith("!shiny&")).toBe(true);
+    }
   });
 });
 
