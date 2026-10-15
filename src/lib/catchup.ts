@@ -94,6 +94,14 @@ export const KEEP_TERMS = [
   "!specialbackground",
 ];
 
+/**
+ * Species the game's search can't be trusted with. Shiny Zorua kept matching
+ * "!shiny" in a trainer's tests while other shinies were excluded, so the search
+ * seems to read Zorua's Illusion disguise rather than Zorua. Zorua and Zoroark
+ * (all forms) are left out of clean-up searches to be checked by hand.
+ */
+export const UNRELIABLE_DEX = [570, 571];
+
 export type CleanupOptions = { maxStars: 0 | 1 | 2 };
 
 export type CleanupPart = { query: string; fromDex: number; toDex: number };
@@ -131,7 +139,9 @@ export function cleanupSearch(data: GameData, opts: CleanupOptions): Cleanup {
     allDex.add(sp.dex);
     if (important.has(sp.id) || special(sp)) keepDex.add(sp.dex);
   }
-  const junk = [...allDex].filter((d) => !keepDex.has(d)).sort((a, b) => a - b);
+  const junk = [...allDex]
+    .filter((d) => !keepDex.has(d) && !UNRELIABLE_DEX.includes(d))
+    .sort((a, b) => a - b);
   const stars = Array.from({ length: opts.maxStars + 1 }, (_, i) => `${i}*`).join(",");
   const head = [...KEEP_TERMS, stars].join("&");
   const make = (dex: number[]): CleanupPart => ({

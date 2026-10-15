@@ -157,6 +157,10 @@ function Cleanup({ data }: { data: GameData }) {
         <li>Costumes, Dynamax and Gigantamax, and special or location backgrounds</li>
         <li>Favorites and anything you've tagged</li>
         <li>Pokémon that know a legacy or Elite TM move</li>
+        <li>
+          Zorua and Zoroark. The game's search doesn't seem to handle their Illusion: shiny Zorua slipped past
+          "!shiny" in testing, so check those by hand.
+        </li>
       </ul>
 
       <h3 className="mt-6 text-sm font-bold">How to use it</h3>

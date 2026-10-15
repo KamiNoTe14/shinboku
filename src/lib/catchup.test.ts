@@ -33,6 +33,7 @@ describe("cleanup search", () => {
     expect(dex).toContain(16); // Pidgey
     expect(dex).not.toContain(307); // Meditite
     expect(dex).not.toContain(150); // Mewtwo
+    expect(dex).not.toContain(570); // Zorua: search reads its disguise
     expect(query.startsWith("!shiny&!lucky")).toBe(true);
     expect(query).toContain("&0*,1*&");
     expect(query).not.toContain("2*");
