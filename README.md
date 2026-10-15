@@ -24,6 +24,8 @@ Early development. What's in place:
 - The bag: keyboard-first entry with live CP/IV checking, a virtualized table for thousands of
   Pokémon, shift/ctrl selection, tags, favorites, and Pokémon GO search strings for any selection
 - Bag backups: CSV export, and import with validation (add/update or replace)
+- Catch cards: click a Pokémon for a card with its CP, level, appraisal and moves, plus one-click
+  power-ups (with stardust and candy costs) and evolutions, all undoable
 - Recommendations: transfer suggestions with reasons, Great/Ultra League IV ranks for each
   Pokémon and its evolutions, evolve suggestions (league IVs, top raid attackers, new Pokédex
   entries, with candy and item costs), and the best raid attackers of each type in your bag with

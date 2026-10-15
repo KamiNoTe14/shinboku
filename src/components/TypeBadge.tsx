@@ -1,7 +1,7 @@
 import type { PokemonType } from "../lib/go/gamedata";
 
 // Type colors tuned to read on Shinboku's dark navy, not copied from the games.
-const colors: Record<PokemonType, string> = {
+export const TYPE_COLORS: Record<PokemonType, string> = {
   Normal: "#a8a29e",
   Fire: "#fb923c",
   Water: "#60a5fa",
@@ -23,7 +23,7 @@ const colors: Record<PokemonType, string> = {
 };
 
 export function TypeBadge({ type, size = "sm" }: { type: PokemonType; size?: "sm" | "md" }) {
-  const c = colors[type];
+  const c = TYPE_COLORS[type];
   return (
     <span
       className={`inline-flex items-center rounded font-semibold ${
