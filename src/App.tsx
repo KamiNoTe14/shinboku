@@ -9,6 +9,7 @@ import Recommendations from "./pages/Recommendations";
 import Pokedex from "./pages/Pokedex";
 import Raids from "./pages/Raids";
 import CatchUp from "./pages/CatchUp";
+import BatchEntry from "./pages/BatchEntry";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -34,6 +35,14 @@ export default function App() {
               element={
                 <RequireAuth>
                   <Recommendations />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="batch"
+              element={
+                <RequireAuth>
+                  <BatchEntry />
                 </RequireAuth>
               }
             />

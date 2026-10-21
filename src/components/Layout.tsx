@@ -12,6 +12,7 @@ const nav: { heading: string; items: NavItem[] }[] = [
     heading: "Your bag",
     items: [
       { to: "/bag", label: "Bag", icon: "bag", private: true },
+      { to: "/batch", label: "Batch entry", icon: "grid", private: true },
       { to: "/catch-up", label: "Catch up", icon: "checklist", private: true },
       { to: "/recommendations", label: "Recommendations", icon: "spark", private: true },
     ],
@@ -177,6 +178,7 @@ const icons = {
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-4h.01",
   checklist: "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9",
   menu: "M4 7h16M4 12h16M4 17h16",
+  grid: "M4 5h16v14H4zM4 10h16M4 15h16M10 5v14",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6v-9Z",
   logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10",
 };

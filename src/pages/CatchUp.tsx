@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { PageHeader } from "../components/PageHeader";
 import { PokemonImage } from "../components/PokemonImage";
 import { SearchStringPanel, copyText } from "../components/SearchStringPanel";
 import { patchPokemon, useBag } from "../lib/bag";
 import { toRows, toSearchable } from "../lib/bagRows";
-import { appraisalQueue, cleanupSearch, families, searchName, type AppraisalItem, type Family } from "../lib/catchup";
+import {
+  appraisalQueue,
+  cleanupSearch,
+  families,
+  importantSpecies,
+  searchName,
+  type AppraisalItem,
+  type Family,
+} from "../lib/catchup";
 import { parseAppraisal } from "../lib/go/entry";
 import { useGameData, type GameData } from "../lib/go/gamedata";
 import { buildSearches, type SearchResult } from "../lib/go/searchString";
@@ -17,7 +25,10 @@ type Tab = "cleanup" | "families" | "appraise";
 
 export default function CatchUp() {
   const { data, error } = useGameData();
+  const [params] = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => {
+    const fromUrl = params.get("tab");
+    if (fromUrl === "cleanup" || fromUrl === "families" || fromUrl === "appraise") return fromUrl;
     try {
       return (localStorage.getItem("catchup.tab") as Tab) || "cleanup";
     } catch {
@@ -48,12 +59,12 @@ export default function CatchUp() {
           Enter by family
         </TabButton>
         <TabButton n={3} on={tab === "appraise"} onClick={() => choose("appraise")}>
-          Appraise what matters
+          Appraise
         </TabButton>
       </div>
       {tab === "cleanup" && <Cleanup data={data} />}
       {tab === "families" && <Families data={data} />}
-      {tab === "appraise" && <Appraise data={data} />}
+      {tab === "appraise" && <Appraise data={data} initialScope={params.get("scope") === "all" ? "all" : "worth"} />}
     </div>
   );
 }
@@ -342,11 +353,24 @@ const familyName = (f: Family) => `${f.root.name.replace(/\s*\(.*\)/, "")} famil
 
 // ---------------------------------------------------------------- 3. appraise
 
-function Appraise({ data }: { data: GameData }) {
+/** Rows rendered at once; the list shrinks as appraisals are saved. */
+const APPRAISE_PAGE = 150;
+
+function Appraise({ data, initialScope }: { data: GameData; initialScope: "worth" | "all" }) {
   const { user } = useAuth();
   const bag = useBag();
   const rows = useMemo(() => toRows(bag.pokemon, data), [bag.pokemon, data]);
-  const queue = useMemo(() => appraisalQueue(rows, data), [rows, data]);
+  const [scope, setScope] = useState<"worth" | "all">(initialScope);
+  const [order, setOrder] = useState<"first" | "last">("first");
+  const worth = useMemo(() => appraisalQueue(rows, data), [rows, data]);
+  const queue = useMemo(() => {
+    if (scope === "worth") return worth;
+    const important = importantSpecies(data);
+    return rows
+      .filter((r) => !r.iv)
+      .sort((a, b) => (order === "first" ? a.added - b.added : b.added - a.added))
+      .map((row) => ({ row, reasons: important.get(row.species) ?? [] }));
+  }, [scope, worth, rows, data, order]);
   const unappraised = rows.filter((r) => !r.iv).length;
   const [searches, setSearches] = useState<SearchResult[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -357,7 +381,7 @@ function Appraise({ data }: { data: GameData }) {
     if (!iv || iv === "invalid") return "Type three numbers from 0 to 15, like 15 14 13.";
     const r = item.row;
     const levels = matchingLevels(r.sp, { atk: iv[0], def: iv[1], sta: iv[2] }, r.cp, r.hp);
-    if (!levels.length && !force) return `No ${r.sp.name} with this appraisal has ${r.cp} CP. Ctrl+Enter saves anyway.`;
+    if (!levels.length && !force) return `No ${r.sp.name} with this appraisal has ${r.cp} CP${r.hp ? ` and ${r.hp} HP` : ""}. Ctrl+Enter saves anyway.`;
     if (!user) return null;
     // Move focus to the next one before this row leaves the list.
     const i = queue.findIndex((x) => x.row.id === r.id);
@@ -384,14 +408,39 @@ function Appraise({ data }: { data: GameData }) {
   return (
     <div className="px-4 sm:px-8 pt-6">
       <p className="max-w-4xl text-sm leading-relaxed text-ink-300">
-        Appraising takes the most taps, so you can skip it while entering and come back for the ones where IVs matter.
-        These are your unappraised Pokémon whose evolution line is competitive in Great or Ultra League or a top raid
-        attacker. Find them in the game with the search string, then type each appraisal here and press Enter.
+        Appraising takes the most taps, so it's quickest as its own pass after entering a batch. Type each appraisal
+        and press Enter to jump to the next. <span className="text-ink-200">Worth appraising</span> lists only
+        Pokémon whose line is competitive in Great or Ultra League or a top raid attacker.{" "}
+        <span className="text-ink-200">Everything</span> lists every unappraised Pokémon in the order you entered
+        them, so you can swipe through the game in the same order.
       </p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Segmented
+          value={scope}
+          onChange={setScope}
+          options={[
+            ["worth", `Worth appraising (${worth.length.toLocaleString()})`],
+            ["all", `Everything (${unappraised.toLocaleString()})`],
+          ]}
+        />
+        {scope === "all" && (
+          <Segmented
+            value={order}
+            onChange={setOrder}
+            options={[
+              ["first", "First entered first"],
+              ["last", "Newest first"],
+            ]}
+          />
+        )}
+      </div>
       <div className="relative mt-5 flex flex-wrap items-center gap-3">
         <span className="text-sm text-ink-300">
-          <span className="font-semibold text-ink-100">{queue.length.toLocaleString()}</span> worth appraising
-          <span className="text-ink-400"> of {unappraised.toLocaleString()} without an appraisal</span>
+          <span className="font-semibold text-ink-100">{queue.length.toLocaleString()}</span>{" "}
+          {scope === "worth" ? "worth appraising" : "to appraise"}
+          {scope === "worth" && (
+            <span className="text-ink-400"> of {unappraised.toLocaleString()} without an appraisal</span>
+          )}
         </span>
         {queue.length > 0 && (
           <SmallButton primary onClick={() => void copyAll()}>
@@ -423,12 +472,13 @@ function Appraise({ data }: { data: GameData }) {
               <th className="w-11 sm:w-14" />
               <th className="py-2 font-semibold md:w-56">Pokémon</th>
               <th className="w-16 py-2 text-right font-semibold sm:w-20">CP</th>
+              <th className="hidden w-16 py-2 text-right font-semibold sm:table-cell">HP</th>
               <th className="w-28 py-2 pl-3 font-semibold sm:w-56 sm:pl-6">Appraisal</th>
               <th className="hidden py-2 font-semibold md:table-cell">Why</th>
             </tr>
           </thead>
           <tbody>
-            {queue.map((item) => (
+            {queue.slice(0, APPRAISE_PAGE).map((item) => (
               <AppraiseRow
                 key={item.row.id}
                 item={item}
@@ -442,6 +492,38 @@ function Appraise({ data }: { data: GameData }) {
           </tbody>
         </table>
       )}
+      {queue.length > APPRAISE_PAGE && (
+        <p className="mt-3 text-xs text-ink-400">
+          Showing the next {APPRAISE_PAGE}. More appear as you save these.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: [T, string][];
+}) {
+  return (
+    <div className="flex rounded-lg border border-ink-700 p-0.5 text-sm">
+      {options.map(([v, label]) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          aria-pressed={value === v}
+          className={`rounded-md px-3 py-1 font-semibold whitespace-nowrap ${
+            value === v ? "bg-glow-500/15 text-glow-300" : "text-ink-400 hover:text-ink-100"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -471,6 +553,7 @@ function AppraiseRow({
         <span className="block truncate text-xs text-ink-400 md:hidden">{item.reasons[0]}</span>
       </td>
       <td className="text-right font-display font-semibold tabular-nums">{r.cp.toLocaleString()}</td>
+      <td className="hidden text-right text-ink-300 tabular-nums sm:table-cell">{r.hp ?? "—"}</td>
       <td className="py-1.5 pl-3 sm:pl-6">
         <input
           ref={inputRef}

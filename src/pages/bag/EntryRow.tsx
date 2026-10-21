@@ -5,6 +5,7 @@ import { TypeBadge } from "../../components/TypeBadge";
 import type { GameData, Species } from "../../lib/go/gamedata";
 import { checkEntry, FLAG_KEYS, parseAppraisal, parseWholeNumber, type FlagName } from "../../lib/go/entry";
 import type { BagPokemon, PokemonInput, Variant } from "../../lib/bag";
+import { Link } from "react-router";
 import { QuickEntry } from "./QuickEntry";
 
 type Mode = "quick" | "full";
@@ -276,6 +277,13 @@ export function EntryRow({
                   {m === "quick" ? "Quick line" : "Full form"}
                 </button>
               ))}
+              <Link
+                to="/batch"
+                className="rounded px-2 py-0.5 font-semibold text-ink-400 hover:text-ink-100"
+                title="Log many Pokémon in a spreadsheet-style grid"
+              >
+                Batch →
+              </Link>
             </span>
           )}
         </div>
